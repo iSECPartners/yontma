@@ -27,6 +27,8 @@ DWORD RemoveYontma(void);
 
 void HibernateMachine(void);
 
+HRESULT GetInternetAdapterAddresses(__inout PIP_ADAPTER_ADDRESSES* ppAdapterAddresses,__inout PULONG pAdapterAddressesSize);
+
 //Monitor functions
 DWORD WINAPI PowerMonitorThread(LPVOID lpParams);
 DWORD WINAPI WiredEthernetMonitorThread(LPVOID lpParams);

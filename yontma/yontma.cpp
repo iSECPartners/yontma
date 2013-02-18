@@ -38,7 +38,7 @@ int _tmain(int argc, _TCHAR* argv[])
     // Check if yontma was launched as a service or manually by the user.
     //
 
-    if ((argc == 2) && (_tcscmp(argv[1], CMD_PARAM_RUN_AS_SERVICE) == 0)) {
+    if((argc == 2) && (_tcscmp(argv[1], CMD_PARAM_RUN_AS_SERVICE) == 0)) {
         StartServiceCtrlDispatcher(stbl);
     }
     else {
@@ -319,6 +319,58 @@ void HibernateMachine(void)
     SetSuspendState(TRUE, TRUE, TRUE);
 }
 
+HRESULT GetInternetAdapterAddresses(__inout PIP_ADAPTER_ADDRESSES* ppAdapterAddresses,__inout PULONG pAdapterAddressesSize)
+{
+    HRESULT hr;
+    ULONG rc = 0;
+
+    rc = GetAdaptersAddresses(AF_UNSPEC,
+                              GAA_FLAG_INCLUDE_PREFIX,
+                              NULL,
+                              *ppAdapterAddresses,
+                              pAdapterAddressesSize);
+    if(rc == ERROR_SUCCESS) {
+
+        //
+        // Our original buffer was large enough to store the result, so we're done.
+        //
+
+        hr = S_OK;
+        goto cleanexit;
+    }
+    else if(rc != ERROR_BUFFER_OVERFLOW) {
+        hr = HRESULT_FROM_WIN32(GetLastError());
+        goto cleanexit;
+    }
+
+    //
+    // Our original buffer couldn't store the result, so we need to allocate a larger buffer.
+    //
+
+    HB_SAFE_FREE(*ppAdapterAddresses);
+    *ppAdapterAddresses = (PIP_ADAPTER_ADDRESSES)malloc(*pAdapterAddressesSize);
+    if(*ppAdapterAddresses == NULL) {
+        hr = E_OUTOFMEMORY;
+        goto cleanexit;
+    }
+
+    rc = GetAdaptersAddresses(AF_UNSPEC,
+                              GAA_FLAG_INCLUDE_PREFIX,
+                              NULL,
+                              *ppAdapterAddresses,
+                              pAdapterAddressesSize);
+    if(rc != ERROR_SUCCESS) {
+        hr = HRESULT_FROM_WIN32(rc);
+        goto cleanexit;
+    }
+
+    hr = S_OK;
+
+cleanexit:
+
+    return hr;
+}
+
 DWORD WINAPI PowerMonitorThread(LPVOID lpParams)
 {
     SYSTEM_POWER_STATUS PowerStatus;
@@ -352,58 +404,35 @@ cleanexit:
 
 DWORD WINAPI WiredEthernetMonitorThread(LPVOID lpParams)
 {
+    HRESULT hr;
     PMONITOR_THREAD_PARAMS pMonitorThreadParams = (PMONITOR_THREAD_PARAMS)lpParams;
+    PIP_ADAPTER_ADDRESSES pOriginalAddresses = NULL;
+    ULONG originalAddressesSize = 0;
     PIP_ADAPTER_ADDRESSES pNewAddresses = NULL;
-    PIP_ADAPTER_ADDRESSES pOldAddresses = NULL;
+    ULONG newAddressesSize = 0;
+    PIP_ADAPTER_ADDRESSES pCurrOriginalAddress = NULL;
     PIP_ADAPTER_ADDRESSES pCurrNewAddress = NULL;
-    PIP_ADAPTER_ADDRESSES pCurrOldAddress = NULL;
-    ULONG outBufLen = sizeof(IP_ADAPTER_ADDRESSES);
 
     WriteLineToLog("WiredEtherMonitorThread: Started");
 
-    pOldAddresses = (PIP_ADAPTER_ADDRESSES)malloc(outBufLen);
-    if(!pOldAddresses) {
+    hr = GetInternetAdapterAddresses(&pOriginalAddresses, &originalAddressesSize);
+    if(HB_FAILED(hr)) {
+        WriteLineToLog("WiredEtherMonitorThread: Failed to get original adapter addresses");
         goto cleanexit;
     }
-
-    if(GetAdaptersAddresses(AF_UNSPEC,
-                            GAA_FLAG_INCLUDE_PREFIX/*|GAA_FLAG_INCLUDE_ALL_INTERFACES*/,
-                            NULL,
-                            pOldAddresses,
-                            &outBufLen) == ERROR_BUFFER_OVERFLOW) {
-        HB_SAFE_FREE(pOldAddresses);
-        outBufLen *= 2; //int overflow...
-        pOldAddresses = (PIP_ADAPTER_ADDRESSES)malloc(outBufLen);
-        if(!pOldAddresses) {
-            goto cleanexit;
-        }
-
-        pNewAddresses = (PIP_ADAPTER_ADDRESSES)malloc(outBufLen);
-        if(!pNewAddresses) {
-            goto cleanexit;
-        }
-    }
-
-    if(GetAdaptersAddresses(AF_UNSPEC,
-                            GAA_FLAG_INCLUDE_PREFIX/*|GAA_FLAG_INCLUDE_ALL_INTERFACES*/,
-                            NULL,
-                            pOldAddresses,
-                            &outBufLen) != NO_ERROR)
-        goto cleanexit;
 
     while(1) {
-        if(GetAdaptersAddresses(AF_UNSPEC,
-                                GAA_FLAG_INCLUDE_PREFIX/*|GAA_FLAG_INCLUDE_ALL_INTERFACES*/,
-                                NULL,
-                                pNewAddresses,
-                                &outBufLen) != NO_ERROR)
+        hr = GetInternetAdapterAddresses(&pNewAddresses, &newAddressesSize);
+        if(HB_FAILED(hr)) {
+            WriteLineToLog("WiredEtherMonitorThread: Failed to get new adapter addresses");
             goto cleanexit;
-
+        }
+        
+        pCurrOriginalAddress = pOriginalAddresses;
         pCurrNewAddress = pNewAddresses;
-        pCurrOldAddress = pOldAddresses;
-        while(pCurrNewAddress && pCurrOldAddress) {
+        while(pCurrOriginalAddress && pCurrNewAddress) {
             if(pCurrNewAddress->IfType == IF_TYPE_ETHERNET_CSMACD) {
-                if((pCurrNewAddress->OperStatus == IfOperStatusDown) && (pCurrOldAddress->OperStatus == IfOperStatusUp)) {
+                if((pCurrNewAddress->OperStatus == IfOperStatusDown) && (pCurrOriginalAddress->OperStatus == IfOperStatusUp)) {
                     WriteLineToLog("WiredEtherMonitorThread: Firing monitor event");
                     SetEvent(pMonitorThreadParams->hMonitorEvent);
                     break;
@@ -412,8 +441,8 @@ DWORD WINAPI WiredEthernetMonitorThread(LPVOID lpParams)
                     ResetEvent(pMonitorThreadParams->hMonitorEvent);
                 }
             }
+            pCurrOriginalAddress = pCurrOriginalAddress->Next;
             pCurrNewAddress = pCurrNewAddress->Next;
-            pCurrOldAddress = pCurrOldAddress->Next;
         }
         
         switch (WaitForSingleObject(pMonitorThreadParams->hMonitorStopEvent, DEFAULT_SLEEP_TIME)) {
@@ -427,7 +456,7 @@ DWORD WINAPI WiredEthernetMonitorThread(LPVOID lpParams)
 cleanexit:
     WriteLineToLog("WiredEtherMonitorThread: Exiting");
 
-    HB_SAFE_FREE(pOldAddresses);
+    HB_SAFE_FREE(pOriginalAddresses);
     HB_SAFE_FREE(pNewAddresses);
     HB_SAFE_FREE(pMonitorThreadParams);
     
