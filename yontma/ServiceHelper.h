@@ -12,6 +12,5 @@ HRESULT OpenYontmaService(__in SC_HANDLE hSCManager,
 HRESULT CreateYontmaService(__in PCTSTR pServicePath,
                             __out SC_HANDLE* phService);
 HRESULT DeleteYontmaService(void);
-HRESULT IsYontmaServiceInstalled(__out PBOOL pbIsInstalled);
 HRESULT RunYontmaService(__in PSERVICE_HANDLER_PARAMS pServiceHandlerParams);
 void StopYontmaService(void);

@@ -15,12 +15,15 @@
 
 #endif
 
+#define CMD_PARAM_INSTALL               TEXT("-i")
+#define CMD_PARAM_UNINSTALL             TEXT("-u")
+#define CMD_PARAM_RUN_AS_SERVICE        TEXT("as_svc")
+
 int _tmain(int argc, _TCHAR* argv[])
 {
     int rc;
     HRESULT hr;
     SC_HANDLE hSCManager = NULL;
-    BOOL bIsServiceInstalled = FALSE;
     SERVICE_TABLE_ENTRY stbl[] = {
                                     {SERVICE_NAME, (LPSERVICE_MAIN_FUNCTION)ServiceMain},
                                     {NULL, NULL}
@@ -31,13 +34,11 @@ int _tmain(int argc, _TCHAR* argv[])
 
     InitLogging();
 
-    hr = IsYontmaServiceInstalled(&bIsServiceInstalled);
-    if(HB_FAILED(hr)) {
-        rc = 1;
-        goto cleanexit;
-    }
+    //
+    // Check if yontma was launched as a service or manually by the user.
+    //
 
-    if(bIsServiceInstalled) {
+    if ((argc == 2) && (_tcscmp(argv[1], CMD_PARAM_RUN_AS_SERVICE) == 0)) {
         StartServiceCtrlDispatcher(stbl);
     }
     else {
@@ -78,11 +79,11 @@ int _tmain(int argc, _TCHAR* argv[])
             goto cleanexit;
         }
 
-        if(_tcscmp(argv[1], TEXT("-i")) == 0) {
+        if(_tcscmp(argv[1], CMD_PARAM_INSTALL) == 0) {
             rc = InstallYontma();
             goto cleanexit;
         }
-        else if(_tcscmp(argv[1], TEXT("-s")) == 0) {
+        else if(_tcscmp(argv[1], CMD_PARAM_UNINSTALL) == 0) {
             rc = RemoveYontma();
             goto cleanexit;
         }
@@ -261,14 +262,24 @@ DWORD InstallYontma(void)
     DWORD dwReturn = 1;
     int iStatus;
     SC_HANDLE hService = NULL;
-    TCHAR cFullPathName[MAX_PATH];
+    TCHAR szFullPathName[MAX_PATH];
+    TCHAR szServiceLaunchCommand[ARRAYSIZE(szFullPathName) + ARRAYSIZE(CMD_PARAM_RUN_AS_SERVICE)];
 
-    if(!GetModuleFileName(NULL, cFullPathName, ARRAYSIZE(cFullPathName))) {
+    if(!GetModuleFileName(NULL, szFullPathName, ARRAYSIZE(szFullPathName))) {
         printf("GetModuleFileName error: %d\r\n", GetLastError());
         goto cleanexit;
     }
 
-    hr = CreateYontmaService(cFullPathName, &hService);
+    hr = StringCchPrintf(szServiceLaunchCommand,
+                         ARRAYSIZE(szServiceLaunchCommand),
+                         TEXT("%s %s"),
+                         szFullPathName,
+                         CMD_PARAM_RUN_AS_SERVICE);
+    if (HB_FAILED(hr)) {
+        goto cleanexit;
+    }
+
+    hr = CreateYontmaService(szServiceLaunchCommand, &hService);
     if(HB_FAILED(hr)) {
         goto cleanexit;
     }
@@ -470,18 +481,18 @@ void WriteLineToLog(char *pStr)
 
 void usage(void)
 {
-    static const char usage[] =
-"yontma v0.2\r\n"
-"yontma (You'll Never Take Me Alive!) is a service that helps protect a\r\n"
-"laptop.\r\n"
-"If BitLocker is enabled, it will hibernate a locked laptop if power or wired\r\n"
-"ethernet is disconnected.\r\n"
-"(c)2013 andreas@isecpartners.com\r\n"
-"--------------------------------------------------------------------------------\r\n"
-"Usage:\r\n"
-"  yontma <option>\r\n"
-"Options:\r\n"
-"  -i             Installs and starts yontma\r\n"
-"  -s             Stops and removes yontma\r\n";
-    printf(usage);
+    static const TCHAR usage[] =
+TEXT("yontma v0.2\r\n")
+TEXT("yontma (You'll Never Take Me Alive!) is a service that helps protect a\r\n")
+TEXT("laptop.\r\n")
+TEXT("If BitLocker is enabled, it will hibernate a locked laptop if power or wired\r\n")
+TEXT("ethernet is disconnected.\r\n")
+TEXT("(c)2013 andreas@isecpartners.com\r\n")
+TEXT("--------------------------------------------------------------------------------\r\n")
+TEXT("Usage:\r\n")
+TEXT("  yontma <option>\r\n")
+TEXT("Options:\r\n")
+TEXT("  ") CMD_PARAM_INSTALL      TEXT("             Installs and starts yontma\r\n")
+TEXT("  ") CMD_PARAM_UNINSTALL    TEXT("             Stops and removes yontma\r\n");
+    _tprintf(usage);
 }

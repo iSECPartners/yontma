@@ -143,47 +143,6 @@ cleanexit:
     return hr;
 }
 
-HRESULT IsYontmaServiceInstalled(__out PBOOL pbIsInstalled)
-{
-    HRESULT hr;
-    SC_HANDLE hSCManager = NULL;
-    BOOL bIsInstalledLocal;
-    TCHAR cDisplayName[MAX_PATH];
-    DWORD dwDisplayNameSize = MAX_PATH;
-
-    hSCManager = OpenSCManager(NULL,
-                               NULL,
-                               SC_MANAGER_ENUMERATE_SERVICE);
-    if (hSCManager == NULL) {
-        printf("OpenSCManager error: %d\r\n", GetLastError());
-        return 1;
-    }
-    if(!GetServiceDisplayName(hSCManager,
-                              SERVICE_NAME,
-                              cDisplayName,
-                              &dwDisplayNameSize)) {
-        if(GetLastError() == ERROR_SERVICE_DOES_NOT_EXIST) {
-            bIsInstalledLocal = FALSE;
-        }
-        else {
-            printf("GetServiceDisplayName error: %d\r\n", GetLastError());
-            hr = HRESULT_FROM_WIN32(GetLastError());
-            goto cleanexit;
-        }
-    }
-    else {
-        bIsInstalledLocal = TRUE;
-    }
-
-    *pbIsInstalled = bIsInstalledLocal;
-    hr = S_OK;
-
-cleanexit:
-    HB_SAFE_CLOSE_SERVICE_HANDLE(hSCManager);
-
-    return hr;
-}
-
 HRESULT ChangeYontmaServiceStatus(DWORD dwServiceStatus, LPVOID lpContext)
 {
     SERVICE_STATUS status;
