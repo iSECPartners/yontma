@@ -23,7 +23,6 @@ int _tmain(int argc, _TCHAR* argv[])
 {
     int rc;
     HRESULT hr;
-    SC_HANDLE hSCManager = NULL;
     SERVICE_TABLE_ENTRY stbl[] = {
                                     {SERVICE_NAME, (LPSERVICE_MAIN_FUNCTION)ServiceMain},
                                     {NULL, NULL}
@@ -111,8 +110,6 @@ void __stdcall ServiceMain(int argc, char* argv[])
     static const int ServiceEndEventIndex = 2;
     static const int TotalEvents = ServiceEndEventIndex + 1;
     HANDLE HandleArray[TotalEvents];
-    MONITOR_THREAD_PARAMS acEventParams = {0};
-    MONITOR_THREAD_PARAMS ethernetEventParams = {0};
     SERVICE_HANDLER_PARAMS serviceHandlerParams = {0};
     BOOL bExitService = FALSE;
 
