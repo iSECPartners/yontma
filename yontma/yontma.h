@@ -1,5 +1,7 @@
 
-#define SERVICE_NAME TEXT("YoNTMA")
+#define SERVICE_NAME TEXT("yontma")
+#define SERVICE_DISPLAY_NAME TEXT("You'll Never Take Me Alive! (YoNTMA)")
+#define SERVICE_FRIENDLY_DESCRIPTION TEXT("Protects the data on your laptop by automatically hibernating the machine when the screen is locked and wired Ethernet or AC power is disconnected.")
 #define DEFAULT_SLEEP_TIME 500
 
 typedef struct _PARTITION_TABLE {

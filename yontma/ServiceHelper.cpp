@@ -59,6 +59,7 @@ HRESULT CreateYontmaService(__in PCTSTR pServicePath,
     HRESULT hr;
     SC_HANDLE hSCManager = NULL;
     SC_HANDLE hServiceLocal = NULL;
+    SERVICE_DESCRIPTION serviceDescription = { SERVICE_FRIENDLY_DESCRIPTION };
 
     hr = OpenServiceManager(&hSCManager);
     if (HB_FAILED(hr)) {
@@ -67,7 +68,7 @@ HRESULT CreateYontmaService(__in PCTSTR pServicePath,
 
     hServiceLocal = CreateService(hSCManager,
                                   SERVICE_NAME,
-                                  SERVICE_NAME,
+                                  SERVICE_DISPLAY_NAME,
                                   SERVICE_ALL_ACCESS,
                                   SERVICE_WIN32_OWN_PROCESS,
                                   SERVICE_AUTO_START,
@@ -91,6 +92,8 @@ HRESULT CreateYontmaService(__in PCTSTR pServicePath,
             }
         }
     }
+
+    ChangeServiceConfig2(hServiceLocal, SERVICE_CONFIG_DESCRIPTION, &serviceDescription);
 
     *phService = hServiceLocal;
     hServiceLocal = NULL;
