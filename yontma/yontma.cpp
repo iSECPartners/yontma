@@ -259,18 +259,23 @@ DWORD InstallYontma(void)
     DWORD dwReturn = 1;
     int iStatus;
     SC_HANDLE hService = NULL;
-    TCHAR szFullPathName[MAX_PATH];
-    TCHAR szServiceLaunchCommand[ARRAYSIZE(szFullPathName) + ARRAYSIZE(CMD_PARAM_RUN_AS_SERVICE)];
+    TCHAR szYontmaInstalledPath[MAX_PATH];
+    TCHAR szServiceLaunchCommand[ARRAYSIZE(szYontmaInstalledPath) + ARRAYSIZE(CMD_PARAM_RUN_AS_SERVICE)];
 
-    if(!GetModuleFileName(NULL, szFullPathName, ARRAYSIZE(szFullPathName))) {
-        printf("GetModuleFileName error: %d\r\n", GetLastError());
+    hr = CopyYontmaBinaryToInstallLocation();
+    if(HB_FAILED(hr)) {
+        goto cleanexit;
+    }
+
+    hr = GetInstallPath(szYontmaInstalledPath, ARRAYSIZE(szYontmaInstalledPath));
+    if(HB_FAILED(hr)) {
         goto cleanexit;
     }
 
     hr = StringCchPrintf(szServiceLaunchCommand,
                          ARRAYSIZE(szServiceLaunchCommand),
                          TEXT("%s %s"),
-                         szFullPathName,
+                         szYontmaInstalledPath,
                          CMD_PARAM_RUN_AS_SERVICE);
     if (HB_FAILED(hr)) {
         goto cleanexit;
@@ -304,6 +309,8 @@ DWORD RemoveYontma(void)
     if(HB_FAILED(hr)) {
         goto cleanexit;
     }
+
+    RemoveYontmaBinaryFromInstallLocation();
 
     dwReturn = 0;
 

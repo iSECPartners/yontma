@@ -26,6 +26,7 @@
 #include "BdeCheck.h"
 #include "WmiHelper.h"
 #include "ServiceHelper.h"
+#include "Installer.h"
 #include "yontma.h"
 
 #define HB_FAILED(__x) ((__x) != S_OK)
