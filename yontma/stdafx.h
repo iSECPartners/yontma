@@ -22,6 +22,7 @@
 #include <comdef.h>
 #include <Wbemidl.h>
 #include <strsafe.h>
+#include <intsafe.h>
 
 #include "BdeCheck.h"
 #include "WmiHelper.h"
@@ -33,3 +34,4 @@
 #define HB_SAFE_RELEASE(__x) { if((__x)) { (__x)->Release(); (__x) = NULL; } }
 #define HB_SAFE_CLOSE_SERVICE_HANDLE(__x) { if((__x)) { CloseServiceHandle((__x)); (__x) = NULL; } }
 #define HB_SAFE_FREE(__x) { if((__x)) { free((__x)); (__x) = NULL; } }
+#define HB_SAFE_LOCAL_FREE(__x) { if((__x)) { LocalFree((__x)); (__x) = NULL; } }

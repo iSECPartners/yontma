@@ -14,3 +14,4 @@ HRESULT CreateYontmaService(__in PCTSTR pServicePath,
 HRESULT DeleteYontmaService(void);
 HRESULT RunYontmaService(__in PSERVICE_HANDLER_PARAMS pServiceHandlerParams);
 void StopYontmaService(void);
+HRESULT GetServiceInstalledPath(__out PTSTR pszServiceInstalledPath, __in size_t cchServiceInstalledPath);

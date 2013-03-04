@@ -274,7 +274,7 @@ DWORD InstallYontma(void)
 
     hr = StringCchPrintf(szServiceLaunchCommand,
                          ARRAYSIZE(szServiceLaunchCommand),
-                         TEXT("%s %s"),
+                         TEXT("\"%s\" %s"),
                          szYontmaInstalledPath,
                          CMD_PARAM_RUN_AS_SERVICE);
     if (HB_FAILED(hr)) {
@@ -300,21 +300,36 @@ cleanexit:
     return dwReturn;
 }
 
+//
+// Description:
+//  Removes the YoNTMA service from the service manager and deletes the
+//  binaries from the install location.
+//
 DWORD RemoveYontma(void)
 {
     HRESULT hr;
     DWORD dwReturn = 1;
+    PTSTR pszServiceExecutionString = NULL;
+    TCHAR szInstalledPath[MAX_PATH] = {0};
+    
+    hr = GetServiceInstalledPath(szInstalledPath,
+                                 ARRAYSIZE(szInstalledPath));
+    if(HB_FAILED(hr)) {
+        goto cleanexit;
+    }
 
     hr = DeleteYontmaService();
     if(HB_FAILED(hr)) {
         goto cleanexit;
     }
 
-    RemoveYontmaBinaryFromInstallLocation();
+    RemoveYontmaBinaryFromInstallLocation(szInstalledPath);
 
     dwReturn = 0;
 
 cleanexit:
+    HB_SAFE_FREE(pszServiceExecutionString);
+
     return dwReturn;
 }
 
