@@ -1,6 +1,7 @@
 #include "stdafx.h"
 
 HRESULT GetPathParentDirectory(__in PTSTR pszPath, __out PTSTR pszParentDirectory, __in size_t cchParentDirectory);
+HRESULT GetPathFilename(__in PTSTR pszPath, __out PTSTR* ppszFilename);
 
 HRESULT GetInstallDirectory(__out TCHAR* pszInstallDirectory, __in size_t cchInstallDirectory)
 {
@@ -23,8 +24,19 @@ cleanexit:
 HRESULT GetInstallPath(__out TCHAR* pszInstallPath, __in size_t cchInstallPath)
 {
     HRESULT hr;
-    const TCHAR szYontmaInstallFilename[] = TEXT("yontma.exe");
+    TCHAR szModuleFilename[MAX_PATH];
+    PTSTR pszYontmaInstallFilename;
     TCHAR szInstallDirectory[MAX_PATH];
+
+    if(!GetModuleFileName(NULL, szModuleFilename, ARRAYSIZE(szModuleFilename))) {
+        hr = HRESULT_FROM_WIN32(GetLastError());
+        goto cleanexit;
+    }
+
+    hr = GetPathFilename(szModuleFilename, &pszYontmaInstallFilename);
+    if(HB_FAILED(hr)) {
+        goto cleanexit;
+    }
 
     hr = GetInstallDirectory(szInstallDirectory, ARRAYSIZE(szInstallDirectory));
     if(HB_FAILED(hr)) {
@@ -35,7 +47,7 @@ HRESULT GetInstallPath(__out TCHAR* pszInstallPath, __in size_t cchInstallPath)
                          cchInstallPath,
                          TEXT("%s\\%s"),
                          szInstallDirectory,
-                         szYontmaInstallFilename);
+                         pszYontmaInstallFilename);
     if(HB_FAILED(hr)) {
         goto cleanexit;
     }
@@ -174,6 +186,41 @@ HRESULT GetPathParentDirectory(__in PTSTR pszPath, __out PTSTR pszParentDirector
     if(HB_FAILED(hr)) {
         goto cleanexit;
     }
+
+cleanexit:
+    return hr;
+}
+
+//
+// Description:
+//  Retrieves the location in a filesystem path of the filename portion of the
+//  path (i.e. the non-directory portion).
+//
+// Parameters:
+//  pszPath - Specifies a filesystem path
+//
+//  ppszFilename - On success, is set to the location in pszPath where the
+//      filename (non-directory) portion of the path begins.
+//
+HRESULT GetPathFilename(__in PTSTR pszPath, __out PTSTR* ppszFilename)
+{
+    HRESULT hr;
+    PTSTR pszLastSlash;
+
+    pszLastSlash = _tcsrchr(pszPath, '\\');
+    if(!pszLastSlash) {
+        hr = E_INVALIDARG;
+        goto cleanexit;
+    }
+
+    if (*(pszLastSlash + 1) == '\0') {
+        hr = E_INVALIDARG;
+        goto cleanexit;
+    }
+
+    *ppszFilename = (pszLastSlash + 1);
+
+    hr = S_OK;
 
 cleanexit:
     return hr;
