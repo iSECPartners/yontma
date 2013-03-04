@@ -11,6 +11,15 @@ HRESULT GetBootVolumeId(__out PTSTR pVolumeId,
 HRESULT GetProtectionStatus(__in PCTSTR pVolumeId,
                             __out PUINT pProtectionStatus);
 
+//
+// Description:
+//  Indicates whether the OS volume is actively being protected by BitLocker
+//  Drive Encryption.
+//
+// Parameters:
+//  pbIsProtected - On success, is set to TRUE if the OS volume is fully
+//  encrypted and protection is not suspended and FALSE otherwise.
+//
 HRESULT IsOsVolumeProtectedByBitLocker(__out PBOOL pbIsProtected)
 {
     HRESULT hr;
