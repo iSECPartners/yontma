@@ -1,5 +1,6 @@
 #include "stdafx.h"
 
+HRESULT OpenServiceManager(__out SC_HANDLE* hSCManager);
 HRESULT ChangeYontmaServiceStatus(DWORD dwServiceStatus);
 HRESULT GetServiceExecutionString(__out PTSTR* ppszServiceExecutionString);
 HRESULT ServiceExecutionStringToInstalledPath(__in PTSTR pszServiceExecutionString, __out PTSTR pszInstalledPath, __in size_t cchInstalledPath);
