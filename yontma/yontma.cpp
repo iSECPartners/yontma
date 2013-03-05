@@ -41,35 +41,29 @@ cleanexit:
 HRESULT ProcessCommandLine(int argc, _TCHAR* argv[])
 {
     HRESULT hr;
+    
+    if(argc != 2) {
+        PrintUsage();
+        hr = E_FAIL;
+        goto cleanexit;
+    }
 
-    //
-    // Check if yontma was launched as a service or manually by the user.
-    //
-
-    if((argc == 2) && (_tcscmp(argv[1], CMD_PARAM_RUN_AS_SERVICE) == 0)) {
+    if(_tcscmp(argv[1], CMD_PARAM_INSTALL) == 0) {
+        hr = PerformInstall();
+        goto cleanexit;
+    }
+    else if(_tcscmp(argv[1], CMD_PARAM_UNINSTALL) == 0) {
+        hr = PerformUninstall();
+        goto cleanexit;
+    }
+    else if(_tcscmp(argv[1], CMD_PARAM_RUN_AS_SERVICE) == 0) {
         PerformRunAsService();
         hr = S_OK;
     }
-    else {        
-        if(argc != 2) {
-            PrintUsage();
-            hr = E_FAIL;
-            goto cleanexit;
-        }
-
-        if(_tcscmp(argv[1], CMD_PARAM_INSTALL) == 0) {
-            hr = PerformInstall();
-            goto cleanexit;
-        }
-        else if(_tcscmp(argv[1], CMD_PARAM_UNINSTALL) == 0) {
-            hr = PerformUninstall();
-            goto cleanexit;
-        }
-        else {
-            PrintUsage();
-            hr = E_FAIL;
-            goto cleanexit;
-        }
+    else {
+        PrintUsage();
+        hr = E_FAIL;
+        goto cleanexit;
     }
 
 cleanexit:
