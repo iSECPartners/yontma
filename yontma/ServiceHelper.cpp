@@ -88,7 +88,7 @@ HRESULT CreateYontmaService(__in PCTSTR pServicePath,
     SERVICE_DESCRIPTION serviceDescription = { SERVICE_FRIENDLY_DESCRIPTION };
 
     hr = OpenServiceManager(&hSCManager);
-    if (HB_FAILED(hr)) {
+    if(HB_FAILED(hr)) {
         goto cleanexit;
     }
 

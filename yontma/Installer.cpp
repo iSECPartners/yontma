@@ -213,7 +213,7 @@ HRESULT GetPathFilename(__in PTSTR pszPath, __out PTSTR* ppszFilename)
         goto cleanexit;
     }
 
-    if (*(pszLastSlash + 1) == '\0') {
+    if(*(pszLastSlash + 1) == '\0') {
         hr = E_INVALIDARG;
         goto cleanexit;
     }

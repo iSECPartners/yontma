@@ -331,7 +331,7 @@ HRESULT InstallYontma(void)
                          TEXT("\"%s\" %s"),
                          szYontmaInstalledPath,
                          CMD_PARAM_RUN_AS_SERVICE);
-    if (HB_FAILED(hr)) {
+    if(HB_FAILED(hr)) {
         goto cleanexit;
     }
 
