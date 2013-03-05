@@ -24,8 +24,8 @@ DWORD WINAPI ServiceHandlerEx(DWORD dwControl,
                               LPVOID lpEventData,
                               LPVOID lpContext);
 
-DWORD InstallYontma(void);
-DWORD RemoveYontma(void);
+HRESULT InstallYontma(void);
+HRESULT RemoveYontma(void);
 
 void HibernateMachine(void);
 

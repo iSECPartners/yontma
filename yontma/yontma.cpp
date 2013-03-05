@@ -112,20 +112,12 @@ cleanexit:
 
 HRESULT PerformInstall(void)
 {
-    if(InstallYontma() != 0) {
-        return E_FAIL;
-    }
-
-    return S_OK;
+    return InstallYontma();
 }
 
 HRESULT PerformUninstall(void)
 {
-    if(RemoveYontma() != 0) {
-        return E_FAIL;
-    }
-
-    return S_OK;
+    return RemoveYontma();
 }
 
 void PerformRunAsService(void)
@@ -289,10 +281,9 @@ DWORD WINAPI ServiceHandlerEx(DWORD dwControl,
     else return ERROR_CALL_NOT_IMPLEMENTED;
 }
 
-DWORD InstallYontma(void)
+HRESULT InstallYontma(void)
 {
     HRESULT hr;
-    DWORD dwReturn = 1;
     int iStatus;
     SC_HANDLE hService = NULL;
     TCHAR szYontmaInstalledPath[MAX_PATH];
@@ -325,15 +316,14 @@ DWORD InstallYontma(void)
     iStatus = StartService(hService, 0, NULL);
     if(iStatus == 0) {
         printf("StartService error: %d\r\n", GetLastError());
+        hr = HRESULT_FROM_WIN32(GetLastError());
         goto cleanexit;
     }
-
-    dwReturn = 0;
 
 cleanexit:
     HB_SAFE_CLOSE_SERVICE_HANDLE(hService);
 
-    return dwReturn;
+    return hr;
 }
 
 //
@@ -341,10 +331,9 @@ cleanexit:
 //  Removes the YoNTMA service from the service manager and deletes the
 //  binaries from the install location.
 //
-DWORD RemoveYontma(void)
+HRESULT RemoveYontma(void)
 {
     HRESULT hr;
-    DWORD dwReturn = 1;
     PTSTR pszServiceExecutionString = NULL;
     TCHAR szInstalledPath[MAX_PATH] = {0};
     
@@ -361,12 +350,10 @@ DWORD RemoveYontma(void)
 
     RemoveYontmaBinaryFromInstallLocation(szInstalledPath);
 
-    dwReturn = 0;
-
 cleanexit:
     HB_SAFE_FREE(pszServiceExecutionString);
 
-    return dwReturn;
+    return hr;
 }
 
 void HibernateMachine(void)
