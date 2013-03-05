@@ -21,7 +21,6 @@
 
 int _tmain(int argc, _TCHAR* argv[])
 {
-    int rc;
     HRESULT hr;
 
     InitLogging();
@@ -32,45 +31,36 @@ int _tmain(int argc, _TCHAR* argv[])
 
     if((argc == 2) && (_tcscmp(argv[1], CMD_PARAM_RUN_AS_SERVICE) == 0)) {
         PerformRunAsService();
+        hr = S_OK;
     }
     else {        
         if(argc != 2) {
             PrintUsage();
-            rc = 1;
+            hr = E_FAIL;
             goto cleanexit;
         }
 
         if(_tcscmp(argv[1], CMD_PARAM_INSTALL) == 0) {
             hr = PerformInstall();
-            if(HB_FAILED(hr)) {
-                rc = 1;
-            }
-            else {
-                rc = 0;
-            }
             goto cleanexit;
         }
         else if(_tcscmp(argv[1], CMD_PARAM_UNINSTALL) == 0) {
             hr = PerformUninstall();
-            if(HB_FAILED(hr)) {
-                rc = 1;
-            }
-            else {
-                rc = 0;
-            }
             goto cleanexit;
         }
         else {
             PrintUsage();
-            rc = 1;
+            hr = E_FAIL;
             goto cleanexit;
         }
     }
-    rc = 0;
 
 cleanexit:
+    if(HB_FAILED(hr)) {
+        return 1;
+    }
 
-    return rc;
+    return 0;
 }
 
 HRESULT PerformInstall(void)
