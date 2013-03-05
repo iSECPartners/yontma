@@ -23,9 +23,6 @@ int _tmain(int argc, _TCHAR* argv[])
 {
     int rc;
     HRESULT hr;
-    SYSTEM_POWER_CAPABILITIES SystemPwrCap;
-    BOOL bLoadedWmi = FALSE;
-    BOOL bIsOsVolumeProtectedByBitLocker;
 
     InitLogging();
 
@@ -36,38 +33,7 @@ int _tmain(int argc, _TCHAR* argv[])
     if((argc == 2) && (_tcscmp(argv[1], CMD_PARAM_RUN_AS_SERVICE) == 0)) {
         PerformRunAsService();
     }
-    else {
-        //check if machine can hibernate
-        if(!GetPwrCapabilities(&SystemPwrCap)) {
-            printf("Unable to get hibernation information, exiting\r\n");
-            rc = 1;
-            goto cleanexit;
-        }
-        if(!SystemPwrCap.HiberFilePresent) {
-            printf("Hibernation is not enabled on this system, exiting\r\n");
-            rc = 1;
-            goto cleanexit;
-        }
-
-        hr = LoadWmi();
-        if(HB_FAILED(hr)) {
-            rc = 1;
-            goto cleanexit;
-        }
-
-        //check for bitlocker
-        hr = IsOsVolumeProtectedByBitLocker(&bIsOsVolumeProtectedByBitLocker);
-        if(HB_FAILED(hr)) {
-            printf("Error checking BitLocker status. Error=0x%x\r\n", hr);
-            printf("Please make sure yontma was executed as administrator\r\n");
-            rc = 1;
-            goto cleanexit;
-        }
-        if(!bIsOsVolumeProtectedByBitLocker) {
-            printf("BitLocker is not enabled on the OS drive of the current system, exiting.\r\n");
-            rc = 1;
-            goto cleanexit;
-        }
+    else {        
         if(argc != 2) {
             PrintUsage();
             rc = 1;
@@ -103,16 +69,65 @@ int _tmain(int argc, _TCHAR* argv[])
     rc = 0;
 
 cleanexit:
-    if(bLoadedWmi) {
-        CleanupWmi();
-    }
 
     return rc;
 }
 
 HRESULT PerformInstall(void)
 {
-    return InstallYontma();
+    HRESULT hr;
+    SYSTEM_POWER_CAPABILITIES SystemPwrCap;
+    BOOL bLoadedWmi = FALSE;
+    BOOL bIsOsVolumeProtectedByBitLocker;
+
+    //
+    // Check if machine can hibernate.
+    //
+
+    if(!GetPwrCapabilities(&SystemPwrCap)) {
+        printf("Unable to get hibernation information, exiting\r\n");
+        hr = HRESULT_FROM_WIN32(GetLastError());
+        goto cleanexit;
+    }
+    if(!SystemPwrCap.HiberFilePresent) {
+        printf("Hibernation is not enabled on this system, exiting\r\n");
+        hr = E_FAIL;
+        goto cleanexit;
+    }
+
+    hr = LoadWmi();
+    if(HB_FAILED(hr)) {
+        goto cleanexit;
+    }
+    bLoadedWmi = TRUE;
+
+    //
+    // Check for BitLocker.
+    //
+
+    hr = IsOsVolumeProtectedByBitLocker(&bIsOsVolumeProtectedByBitLocker);
+    if(HB_FAILED(hr)) {
+        printf("Error checking BitLocker status. Error=0x%x\r\n", hr);
+        printf("Please make sure yontma was executed as administrator\r\n");
+        goto cleanexit;
+    }
+    if(!bIsOsVolumeProtectedByBitLocker) {
+        printf("BitLocker is not enabled on the OS drive of the current system, exiting.\r\n");
+        hr = E_FAIL;
+        goto cleanexit;
+    }
+
+    hr = InstallYontma();
+    if(HB_FAILED(hr)) {
+        goto cleanexit;
+    }
+
+cleanexit:
+    if(bLoadedWmi) {
+        CleanupWmi();
+    }
+
+    return hr;
 }
 
 HRESULT PerformUninstall(void)
