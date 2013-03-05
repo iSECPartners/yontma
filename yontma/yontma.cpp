@@ -23,8 +23,6 @@ int _tmain(int argc, _TCHAR* argv[])
 {
     HRESULT hr;
 
-    InitLogging();
-
     hr = ProcessCommandLine(argc, argv);
     if(HB_FAILED(hr)) {
         goto cleanexit;
@@ -101,6 +99,8 @@ void PerformRunAsService(void)
                                     {SERVICE_NAME, (LPSERVICE_MAIN_FUNCTION)ServiceMain},
                                     {NULL, NULL}
                                  };
+
+    InitLogging();
 
     StartServiceCtrlDispatcher(stbl);
 }
