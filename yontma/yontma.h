@@ -24,6 +24,8 @@ DWORD WINAPI ServiceHandlerEx(DWORD dwControl,
                               LPVOID lpEventData,
                               LPVOID lpContext);
 
+HRESULT CheckYontmaRequirements();
+
 HRESULT InstallYontma(void);
 HRESULT RemoveYontma(void);
 
