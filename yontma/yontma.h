@@ -47,4 +47,7 @@ void WriteLineToLog(char *pStr);
 #define WriteLineToLog(__x)
 #endif
 
-void usage(void);
+HRESULT PerformInstall(void);
+HRESULT PerformUninstall(void);
+void PerformRunAsService(void);
+void PrintUsage(void);

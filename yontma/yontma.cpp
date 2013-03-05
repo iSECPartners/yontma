@@ -23,10 +23,6 @@ int _tmain(int argc, _TCHAR* argv[])
 {
     int rc;
     HRESULT hr;
-    SERVICE_TABLE_ENTRY stbl[] = {
-                                    {SERVICE_NAME, (LPSERVICE_MAIN_FUNCTION)ServiceMain},
-                                    {NULL, NULL}
-                                 };
     SYSTEM_POWER_CAPABILITIES SystemPwrCap;
     BOOL bLoadedWmi = FALSE;
     BOOL bIsOsVolumeProtectedByBitLocker;
@@ -38,7 +34,7 @@ int _tmain(int argc, _TCHAR* argv[])
     //
 
     if((argc == 2) && (_tcscmp(argv[1], CMD_PARAM_RUN_AS_SERVICE) == 0)) {
-        StartServiceCtrlDispatcher(stbl);
+        PerformRunAsService();
     }
     else {
         //check if machine can hibernate
@@ -73,21 +69,33 @@ int _tmain(int argc, _TCHAR* argv[])
             goto cleanexit;
         }
         if(argc != 2) {
-            usage();
+            PrintUsage();
             rc = 1;
             goto cleanexit;
         }
 
         if(_tcscmp(argv[1], CMD_PARAM_INSTALL) == 0) {
-            rc = InstallYontma();
+            hr = PerformInstall();
+            if(HB_FAILED(hr)) {
+                rc = 1;
+            }
+            else {
+                rc = 0;
+            }
             goto cleanexit;
         }
         else if(_tcscmp(argv[1], CMD_PARAM_UNINSTALL) == 0) {
-            rc = RemoveYontma();
+            hr = PerformUninstall();
+            if(HB_FAILED(hr)) {
+                rc = 1;
+            }
+            else {
+                rc = 0;
+            }
             goto cleanexit;
         }
         else {
-            usage();
+            PrintUsage();
             rc = 1;
             goto cleanexit;
         }
@@ -100,6 +108,34 @@ cleanexit:
     }
 
     return rc;
+}
+
+HRESULT PerformInstall(void)
+{
+    if(InstallYontma() != 0) {
+        return E_FAIL;
+    }
+
+    return S_OK;
+}
+
+HRESULT PerformUninstall(void)
+{
+    if(RemoveYontma() != 0) {
+        return E_FAIL;
+    }
+
+    return S_OK;
+}
+
+void PerformRunAsService(void)
+{
+    SERVICE_TABLE_ENTRY stbl[] = {
+                                    {SERVICE_NAME, (LPSERVICE_MAIN_FUNCTION)ServiceMain},
+                                    {NULL, NULL}
+                                 };
+
+    StartServiceCtrlDispatcher(stbl);
 }
 
 void __stdcall ServiceMain(int argc, char* argv[])
@@ -527,7 +563,7 @@ void WriteLineToLog(char *pStr)
 }
 #endif
 
-void usage(void)
+void PrintUsage(void)
 {
     static const TCHAR usage[] =
 TEXT("yontma v0.2\r\n")
