@@ -25,6 +25,23 @@ int _tmain(int argc, _TCHAR* argv[])
 
     InitLogging();
 
+    hr = ProcessCommandLine(argc, argv);
+    if(HB_FAILED(hr)) {
+        goto cleanexit;
+    }
+
+cleanexit:
+    if(HB_FAILED(hr)) {
+        return 1;
+    }
+
+    return 0;
+}
+
+HRESULT ProcessCommandLine(int argc, _TCHAR* argv[])
+{
+    HRESULT hr;
+
     //
     // Check if yontma was launched as a service or manually by the user.
     //
@@ -56,11 +73,8 @@ int _tmain(int argc, _TCHAR* argv[])
     }
 
 cleanexit:
-    if(HB_FAILED(hr)) {
-        return 1;
-    }
 
-    return 0;
+    return hr;
 }
 
 HRESULT PerformInstall(void)

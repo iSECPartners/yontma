@@ -47,6 +47,7 @@ void WriteLineToLog(char *pStr);
 #define WriteLineToLog(__x)
 #endif
 
+HRESULT ProcessCommandLine(int argc, _TCHAR* argv[]);
 HRESULT PerformInstall(void);
 HRESULT PerformUninstall(void);
 void PerformRunAsService(void);
