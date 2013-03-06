@@ -447,8 +447,19 @@ DWORD WINAPI PowerMonitorThread(LPVOID lpParams)
     
     WriteLineToLog("PowerMonitorThread: Started");
 
+    if(!GetSystemPowerStatus(&PowerStatus)) {
+        WriteLineToLog("PowerMonitorThread: Error detecting initial power state.");
+        goto cleanexit;
+    }
+    if(!PowerStatus.ACLineStatus) {
+        WriteLineToLog("PowerMonitorThread: Machine was not connected to AC power at lock time.");
+        goto cleanexit;
+    }
+
     while(1) {
-        GetSystemPowerStatus(&PowerStatus);
+        if(!GetSystemPowerStatus(&PowerStatus)) {
+            continue;
+        }
         if(!PowerStatus.ACLineStatus) {
             WriteLineToLog("PowerMonitorThread: Firing monitor event");
             SetEvent(pMonitorThreadParams->hMonitorEvent);
