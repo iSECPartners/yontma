@@ -22,6 +22,7 @@
 #include <comdef.h>
 #include <Wbemidl.h>
 #include <lm.h>
+#include <Ntsecapi.h>
 #include <strsafe.h>
 #include <intsafe.h>
 
