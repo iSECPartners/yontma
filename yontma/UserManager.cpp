@@ -5,7 +5,7 @@
 #define STATUS_SUCCESS ((NTSTATUS)0x00000000L)
 
 HRESULT CheckIfServiceUserExists(PBOOL pbUserExists);
-BOOL AdjustYontmaAccountPrivileges(void);
+HRESULT AdjustYontmaAccountPrivileges(void);
 bool InitLsaString(PLSA_UNICODE_STRING pLsaString,LPCWSTR pwszString);
 HRESULT GenerateRandomPassword(__out PWSTR pszPassword, __in size_t cchPassword);
 HRESULT PasswordFromBytes(__in PBYTE pBytes, __in size_t cbBytes, __out PWSTR pszPassword, __in size_t cbPassword);
@@ -167,9 +167,18 @@ BOOL CreateYontmaUser(WCHAR *wcPassword,DWORD dwPwdSize)
 		return FALSE;
 	}
 
-	//we need this to succeed to be able to use our new user
-	if(!AdjustYontmaAccountPrivileges()) return FALSE;
-	else return TRUE;
+    
+    //
+    // We need this to succeed to be able to use our new user.
+    //
+
+    hr = AdjustYontmaAccountPrivileges();
+    if(HB_FAILED(hr)) {
+        return FALSE;
+    }
+    else {
+        return TRUE;
+    }
 
 	//remove user fom all groups
 	//we return true even if this fails since this user will still be more low-priv than SYSTEM
@@ -184,42 +193,70 @@ BOOL CreateYontmaUser(WCHAR *wcPassword,DWORD dwPwdSize)
 	return TRUE;
 }
 
-BOOL AdjustYontmaAccountPrivileges(void)
+HRESULT AdjustYontmaAccountPrivileges(void)
 {
-	PBYTE SidBuffer[128];
-	PSID pSid = (PSID)SidBuffer;
-	DWORD dwSid = sizeof(SidBuffer);
-	WCHAR wcRefDomain[128];
-	DWORD dwRefDomain = sizeof(wcRefDomain) / sizeof(WCHAR);
-	SID_NAME_USE SidNameUse;
-	LSA_OBJECT_ATTRIBUTES ObjectAttributes = {0};
-	LSA_HANDLE lsahPolicyHandle;
-	LSA_UNICODE_STRING lucStr;
-	
-	if(!LookupAccountName(NULL,YONTMA_SERVICE_ACCOUNT_NAME,&SidBuffer,&dwSid,wcRefDomain,&dwRefDomain,&SidNameUse)) {
-		return FALSE;
-	}
+    HRESULT hr;
+    NTSTATUS ntReturn;
+    PBYTE SidBuffer[128];
+    PSID pSid = (PSID)SidBuffer;
+    DWORD dwSid = sizeof(SidBuffer);
+    WCHAR wcRefDomain[128];
+    DWORD dwRefDomain = sizeof(wcRefDomain) / sizeof(WCHAR);
+    SID_NAME_USE SidNameUse;
+    LSA_OBJECT_ATTRIBUTES ObjectAttributes = {0};
+    LSA_HANDLE lsahPolicyHandle = NULL;
+    LSA_UNICODE_STRING lucStr;
+    
+    if(!LookupAccountName(NULL,
+                          YONTMA_SERVICE_ACCOUNT_NAME,
+                          &SidBuffer,
+                          &dwSid,
+                          wcRefDomain,
+                          &dwRefDomain,
+                          &SidNameUse)) {
+        hr = HRESULT_FROM_WIN32(GetLastError());
+        goto cleanexit;
+    }
 
-	if(LsaOpenPolicy(NULL,&ObjectAttributes,POLICY_ALL_ACCESS,&lsahPolicyHandle) != STATUS_SUCCESS) return FALSE;
+    ntReturn = LsaOpenPolicy(NULL,
+                             &ObjectAttributes,
+                             POLICY_ALL_ACCESS,
+                             &lsahPolicyHandle);
+    if(ntReturn != STATUS_SUCCESS) {
+        hr = HRESULT_FROM_WIN32(LsaNtStatusToWinError(ntReturn));
+        goto cleanexit;
+    }
 
-	InitLsaString(&lucStr,SE_SERVICE_LOGON_NAME);
-	if(LsaAddAccountRights(lsahPolicyHandle,pSid,&lucStr,1) != STATUS_SUCCESS) {
-		LsaClose(lsahPolicyHandle);
-		return FALSE;
-	}
+    if(!InitLsaString(&lucStr,SE_SERVICE_LOGON_NAME)) {
+        hr = E_FAIL;
+        goto cleanexit;
+    }
 
-	//when we remove privs, we don't care if we fail
-	InitLsaString(&lucStr,SE_BATCH_LOGON_NAME);
-	LsaRemoveAccountRights(lsahPolicyHandle,pSid,FALSE,&lucStr,1);
-	InitLsaString(&lucStr,SE_INTERACTIVE_LOGON_NAME);
-	LsaRemoveAccountRights(lsahPolicyHandle,pSid,FALSE,&lucStr,1);
-	InitLsaString(&lucStr,SE_NETWORK_LOGON_NAME);
-	LsaRemoveAccountRights(lsahPolicyHandle,pSid,FALSE,&lucStr,1);
-	InitLsaString(&lucStr,SE_REMOTE_INTERACTIVE_LOGON_NAME);
-	LsaRemoveAccountRights(lsahPolicyHandle,pSid,FALSE,&lucStr,1);
+    ntReturn = LsaAddAccountRights(lsahPolicyHandle,pSid,&lucStr,1);
+    if(ntReturn != STATUS_SUCCESS) {
+        hr = HRESULT_FROM_WIN32(LsaNtStatusToWinError(ntReturn));
+        goto cleanexit;
+    }
 
-	LsaClose(lsahPolicyHandle);
-	return TRUE;
+    //
+    // When we remove privileges, we don't care if we fail.
+    //
+
+    InitLsaString(&lucStr,SE_BATCH_LOGON_NAME);
+    LsaRemoveAccountRights(lsahPolicyHandle,pSid,FALSE,&lucStr,1);
+    InitLsaString(&lucStr,SE_INTERACTIVE_LOGON_NAME);
+    LsaRemoveAccountRights(lsahPolicyHandle,pSid,FALSE,&lucStr,1);
+    InitLsaString(&lucStr,SE_NETWORK_LOGON_NAME);
+    LsaRemoveAccountRights(lsahPolicyHandle,pSid,FALSE,&lucStr,1);
+    InitLsaString(&lucStr,SE_REMOTE_INTERACTIVE_LOGON_NAME);
+    LsaRemoveAccountRights(lsahPolicyHandle,pSid,FALSE,&lucStr,1);
+
+    hr = S_OK;
+
+cleanexit:
+    LsaClose(lsahPolicyHandle);
+
+    return hr;
 }
 
 bool InitLsaString(PLSA_UNICODE_STRING pLsaString,LPCWSTR pwszString)
