@@ -334,6 +334,13 @@ HRESULT InstallYontma(void)
     TCHAR szYontmaInstalledPath[MAX_PATH];
     TCHAR szServiceLaunchCommand[ARRAYSIZE(szYontmaInstalledPath) + ARRAYSIZE(CMD_PARAM_RUN_AS_SERVICE)];
 	LPCTSTR cstrSSArgument[32] = {CMD_PARAM_STARTED_FROM_SS};
+    PWSTR pszAccountPassword = NULL;
+    size_t cbAccountPassword;
+
+    hr = CreateServiceUserAccount(&pszAccountPassword, &cbAccountPassword);
+    if(HB_FAILED(hr)) {
+        goto cleanexit;
+    }
 
     hr = CopyYontmaBinaryToInstallLocation();
     if(HB_FAILED(hr)) {
@@ -367,6 +374,7 @@ HRESULT InstallYontma(void)
     }
 
 cleanexit:
+    HB_SECURE_FREE(pszAccountPassword, cbAccountPassword);
     HB_SAFE_CLOSE_SERVICE_HANDLE(hService);
 
     return hr;
@@ -395,6 +403,8 @@ HRESULT RemoveYontma(void)
     }
 
     RemoveYontmaBinaryFromInstallLocation(szInstalledPath);
+
+    RemoveServiceUserAccount();
 
 cleanexit:
     HB_SAFE_FREE(pszServiceExecutionString);

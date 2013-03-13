@@ -57,7 +57,7 @@
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>wbemuuid.lib;PowrProf.lib;Iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>wbemuuid.lib;PowrProf.lib;Iphlpapi.lib;Netapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
@@ -86,6 +86,7 @@
   <ItemGroup>
     <ClCompile Include="BdeCheck.cpp" />
     <ClCompile Include="Installer.cpp" />
+    <ClCompile Include="UserManager.cpp" />
     <ClCompile Include="yontma.cpp" />
     <ClCompile Include="ServiceHelper.cpp" />
     <ClCompile Include="stdafx.cpp">
@@ -97,6 +98,7 @@
   <ItemGroup>
     <ClInclude Include="BdeCheck.h" />
     <ClInclude Include="Installer.h" />
+    <ClInclude Include="UserManager.h" />
     <ClInclude Include="yontma.h" />
     <ClInclude Include="ServiceHelper.h" />
     <ClInclude Include="stdafx.h" />

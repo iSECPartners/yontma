@@ -21,11 +21,13 @@
 #include <IPTypes.h>
 #include <comdef.h>
 #include <Wbemidl.h>
+#include <lm.h>
 #include <strsafe.h>
 #include <intsafe.h>
 
 #include "BdeCheck.h"
 #include "WmiHelper.h"
+#include "UserManager.h"
 #include "ServiceHelper.h"
 #include "Installer.h"
 #include "yontma.h"
@@ -35,3 +37,4 @@
 #define HB_SAFE_CLOSE_SERVICE_HANDLE(__x) { if((__x)) { CloseServiceHandle((__x)); (__x) = NULL; } }
 #define HB_SAFE_FREE(__x) { if((__x)) { free((__x)); (__x) = NULL; } }
 #define HB_SAFE_LOCAL_FREE(__x) { if((__x)) { LocalFree((__x)); (__x) = NULL; } }
+#define HB_SECURE_FREE(__x, __size) { if((__x)) { SecureZeroMemory(__x, __size); free((__x)); (__x) = NULL; } }
