@@ -86,25 +86,46 @@ HRESULT CreateYontmaService(__in PCTSTR pServicePath,
     SC_HANDLE hSCManager = NULL;
     SC_HANDLE hServiceLocal = NULL;
     SERVICE_DESCRIPTION serviceDescription = { SERVICE_FRIENDLY_DESCRIPTION };
+	WCHAR wcPassword[16];
 
     hr = OpenServiceManager(&hSCManager);
     if(HB_FAILED(hr)) {
         goto cleanexit;
     }
 
-    hServiceLocal = CreateService(hSCManager,
-                                  SERVICE_NAME,
-                                  SERVICE_DISPLAY_NAME,
-                                  SERVICE_ALL_ACCESS,
-                                  SERVICE_WIN32_OWN_PROCESS,
-                                  SERVICE_AUTO_START,
-                                  SERVICE_ERROR_IGNORE,
-                                  pServicePath,
-                                  NULL,
-                                  NULL,
-                                  NULL,
-                                  NULL,
-                                  NULL);
+	if(CreateYontmaUser(wcPassword,sizeof(wcPassword) / sizeof(WCHAR))) {
+		printf("Installing as %S user\n",USERNAME);
+		hServiceLocal = CreateService(hSCManager,
+									  SERVICE_NAME,
+									  SERVICE_DISPLAY_NAME,
+									  SERVICE_ALL_ACCESS,
+									  SERVICE_WIN32_OWN_PROCESS,
+									  SERVICE_AUTO_START,
+									  SERVICE_ERROR_IGNORE,
+									  pServicePath,
+									  NULL,
+									  NULL,
+									  NULL,
+									  USERNAME_W_DOMAIN,
+									  wcPassword);
+		SecureZeroMemory(wcPassword,sizeof(wcPassword));
+	}
+	else {
+		printf("Installing as SYSTEM user\n",USERNAME);
+		hServiceLocal = CreateService(hSCManager,
+									  SERVICE_NAME,
+									  SERVICE_DISPLAY_NAME,
+									  SERVICE_ALL_ACCESS,
+									  SERVICE_WIN32_OWN_PROCESS,
+									  SERVICE_AUTO_START,
+									  SERVICE_ERROR_IGNORE,
+									  pServicePath,
+									  NULL,
+									  NULL,
+									  NULL,
+									  NULL,
+									  NULL);
+	}
     if(hServiceLocal == NULL) {
         if(GetLastError() != ERROR_SERVICE_EXISTS) {
             printf("CreateService error: %d\r\n", GetLastError());
@@ -156,6 +177,11 @@ HRESULT DeleteYontmaService(void)
         printf("DeleteService error: %d\r\n", GetLastError());
         goto cleanexit;
     }
+
+	if(!DeleteYontmaUser()) {
+		printf("DeleteYontmaUser error: %d\r\n", GetLastError());
+        goto cleanexit;
+	}
 
     hr = S_OK;
 
