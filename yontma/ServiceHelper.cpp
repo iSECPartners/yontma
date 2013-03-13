@@ -94,7 +94,7 @@ HRESULT CreateYontmaService(__in PCTSTR pServicePath,
     }
 
 	if(CreateYontmaUser(wcPassword,sizeof(wcPassword) / sizeof(WCHAR))) {
-		printf("Installing as %S user\n",USERNAME);
+		printf("Installing as %S user\n",YONTMA_SERVICE_ACCOUNT_NAME);
 		hServiceLocal = CreateService(hSCManager,
 									  SERVICE_NAME,
 									  SERVICE_DISPLAY_NAME,
@@ -106,12 +106,12 @@ HRESULT CreateYontmaService(__in PCTSTR pServicePath,
 									  NULL,
 									  NULL,
 									  NULL,
-									  USERNAME_W_DOMAIN,
+                                      YONTMA_SERVICE_ACCOUNT_NAME_WITH_DOMAIN,
 									  wcPassword);
 		SecureZeroMemory(wcPassword,sizeof(wcPassword));
 	}
 	else {
-		printf("Installing as SYSTEM user\n",USERNAME);
+		printf("Installing as SYSTEM user\n",YONTMA_SERVICE_ACCOUNT_NAME);
 		hServiceLocal = CreateService(hSCManager,
 									  SERVICE_NAME,
 									  SERVICE_DISPLAY_NAME,

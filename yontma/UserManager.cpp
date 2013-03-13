@@ -108,18 +108,18 @@ BOOL CreateYontmaUser(WCHAR *wcPassword,DWORD dwPwdSize)
 	LOCALGROUP_MEMBERS_INFO_3 LocalGroupMembersInfo3 = {0};
 
 	//Check if the user already exist. Delete if it does
-	dwResult = NetUserGetInfo(NULL,USERNAME,0,(LPBYTE*)&pUserInfo0);
+	dwResult = NetUserGetInfo(NULL,YONTMA_SERVICE_ACCOUNT_NAME,0,(LPBYTE*)&pUserInfo0);
 	NetApiBufferFree(pUserInfo0);
 	if(dwResult == NERR_Success)
 	{
-		if(NetUserDel(NULL,USERNAME) != NERR_Success) return FALSE;
+		if(NetUserDel(NULL,YONTMA_SERVICE_ACCOUNT_NAME) != NERR_Success) return FALSE;
 	}
 
 	//generate a new, random passwords
 	if(!GenerateRandomPassword(wcPassword,dwPwdSize)) return FALSE;
 
 	//create a new user
-	UserInfo1.usri1_name = USERNAME;
+	UserInfo1.usri1_name = YONTMA_SERVICE_ACCOUNT_NAME;
 	UserInfo1.usri1_password = wcPassword;
 	UserInfo1.usri1_priv = USER_PRIV_USER;
 	dwResult = NetUserAdd(NULL,1,(LPBYTE)&UserInfo1,NULL);
@@ -133,9 +133,9 @@ BOOL CreateYontmaUser(WCHAR *wcPassword,DWORD dwPwdSize)
 
 	//remove user fom all groups
 	//we return true even if this fails since this user will still be more low-priv than SYSTEM
-	if(NetUserGetGroups(NULL,USERNAME,0,(LPBYTE*)&pGroupInfo0,MAX_PREFERRED_LENGTH,&dwEntries,&dwTotalEntries) == NERR_Success) {
+	if(NetUserGetGroups(NULL,YONTMA_SERVICE_ACCOUNT_NAME,0,(LPBYTE*)&pGroupInfo0,MAX_PREFERRED_LENGTH,&dwEntries,&dwTotalEntries) == NERR_Success) {
 		for(i = 0; i < dwEntries; i++) {
-			LocalGroupMembersInfo3.lgrmi3_domainandname = USERNAME;
+			LocalGroupMembersInfo3.lgrmi3_domainandname = YONTMA_SERVICE_ACCOUNT_NAME;
 			NetLocalGroupDelMembers(NULL,pGroupInfo0[i].grui0_name,3,(LPBYTE)&LocalGroupMembersInfo3,1);
 		}
 		NetApiBufferFree(pGroupInfo0);
@@ -146,7 +146,7 @@ BOOL CreateYontmaUser(WCHAR *wcPassword,DWORD dwPwdSize)
 
 BOOL DeleteYontmaUser(void)
 {
-	if(NetUserDel(NULL,USERNAME) != NERR_Success) return FALSE;
+	if(NetUserDel(NULL,YONTMA_SERVICE_ACCOUNT_NAME) != NERR_Success) return FALSE;
 	else return TRUE;
 }
 
@@ -162,7 +162,7 @@ BOOL AdjustYontmaAccountPrivileges(void)
 	LSA_HANDLE lsahPolicyHandle;
 	LSA_UNICODE_STRING lucStr;
 	
-	if(!LookupAccountName(NULL,USERNAME,&SidBuffer,&dwSid,wcRefDomain,&dwRefDomain,&SidNameUse)) {
+	if(!LookupAccountName(NULL,YONTMA_SERVICE_ACCOUNT_NAME,&SidBuffer,&dwSid,wcRefDomain,&dwRefDomain,&SidNameUse)) {
 		return FALSE;
 	}
 
