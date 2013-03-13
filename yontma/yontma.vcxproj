@@ -86,7 +86,9 @@
   <ItemGroup>
     <ClCompile Include="BdeCheck.cpp" />
     <ClCompile Include="Installer.cpp" />
+    <ClCompile Include="PowerMonitor.cpp" />
     <ClCompile Include="UserManager.cpp" />
+    <ClCompile Include="WiredEthernetMonitor.cpp" />
     <ClCompile Include="yontma.cpp" />
     <ClCompile Include="ServiceHelper.cpp" />
     <ClCompile Include="stdafx.cpp">
@@ -98,7 +100,9 @@
   <ItemGroup>
     <ClInclude Include="BdeCheck.h" />
     <ClInclude Include="Installer.h" />
+    <ClInclude Include="PowerMonitor.h" />
     <ClInclude Include="UserManager.h" />
+    <ClInclude Include="WiredEthernetMonitor.h" />
     <ClInclude Include="yontma.h" />
     <ClInclude Include="ServiceHelper.h" />
     <ClInclude Include="stdafx.h" />
