@@ -18,7 +18,7 @@
 #define CMD_PARAM_INSTALL               TEXT("-i")
 #define CMD_PARAM_UNINSTALL             TEXT("-u")
 #define CMD_PARAM_RUN_AS_SERVICE        TEXT("as_svc")
-#define CMD_PARAM_STARTED_FROM_SS		TEXT("started_from_ss")
+#define CMD_PARAM_STARTED_FROM_SS        TEXT("started_from_ss")
 
 int _tmain(int argc, _TCHAR* argv[])
 {
@@ -118,20 +118,20 @@ void __stdcall ServiceMain(int argc, TCHAR* argv[])
     HANDLE HandleArray[TotalEvents];
     SERVICE_HANDLER_PARAMS serviceHandlerParams = {0};
     BOOL bExitService = FALSE;
-	BOOL bNeverLoggedIn = FALSE;
+    BOOL bNeverLoggedIn = FALSE;
 
     WriteLineToLog("In ServiceMain");
 
-	//ServiceMain will only be called when the service is started. When it is started by StartService, we set an argument which can be checked for. If
-	//this argument is not present, we know we are coming out of a OS start and the machine is locked.
-	if((argc == 2) && (!_tcscmp(argv[1],CMD_PARAM_STARTED_FROM_SS))) {
-		bNeverLoggedIn = FALSE;
-		WriteLineToLog("bNeverLoggedIn = FALSE");
-	}
-	else {
-		bNeverLoggedIn = TRUE;
-		WriteLineToLog("bNeverLoggedIn = TRUE");
-	}
+    //ServiceMain will only be called when the service is started. When it is started by StartService, we set an argument which can be checked for. If
+    //this argument is not present, we know we are coming out of a OS start and the machine is locked.
+    if((argc == 2) && (!_tcscmp(argv[1],CMD_PARAM_STARTED_FROM_SS))) {
+        bNeverLoggedIn = FALSE;
+        WriteLineToLog("bNeverLoggedIn = FALSE");
+    }
+    else {
+        bNeverLoggedIn = TRUE;
+        WriteLineToLog("bNeverLoggedIn = TRUE");
+    }
 
     HandleArray[ServiceEndEventIndex] = CreateEvent(NULL,
                                                     TRUE,
@@ -171,8 +171,8 @@ void __stdcall ServiceMain(int argc, TCHAR* argv[])
 
     WriteLineToLog("ServiceMain: Going into main loop");
 
-	//make sure to tell the Callback that the screen is locked if we came out of a OS boot
-	if(bNeverLoggedIn) ServiceHandlerEx(SERVICE_CONTROL_SESSIONCHANGE,WTS_SESSION_LOCK,NULL,&serviceHandlerParams);
+    //make sure to tell the Callback that the screen is locked if we came out of a OS boot
+    if(bNeverLoggedIn) ServiceHandlerEx(SERVICE_CONTROL_SESSIONCHANGE,WTS_SESSION_LOCK,NULL,&serviceHandlerParams);
 
     while(!bExitService) {
         switch(WaitForMultipleObjects(TotalEvents,
@@ -333,7 +333,7 @@ HRESULT InstallYontma(void)
     SC_HANDLE hService = NULL;
     TCHAR szYontmaInstalledPath[MAX_PATH];
     TCHAR szServiceLaunchCommand[ARRAYSIZE(szYontmaInstalledPath) + ARRAYSIZE(CMD_PARAM_RUN_AS_SERVICE)];
-	LPCTSTR cstrSSArgument[32] = {CMD_PARAM_STARTED_FROM_SS};
+    LPCTSTR cstrSSArgument[32] = {CMD_PARAM_STARTED_FROM_SS};
     PWSTR pszAccountPassword = NULL;
     size_t cbAccountPassword;
 

@@ -137,11 +137,11 @@ BOOL CreateYontmaUser(WCHAR *wcPassword,DWORD dwPwdSize)
 {
     HRESULT hr;
     BOOL bServiceUserExists;
-	USER_INFO_1 UserInfo1 = {0};
-	DWORD dwResult;
-	
+    USER_INFO_1 UserInfo1 = {0};
+    DWORD dwResult;
     
-	//Check if the user already exist. Delete if it does
+    
+    //Check if the user already exist. Delete if it does
     hr = CheckIfServiceUserExists(&bServiceUserExists);
     if(HB_FAILED(hr)) {
         return FALSE;
@@ -151,21 +151,21 @@ BOOL CreateYontmaUser(WCHAR *wcPassword,DWORD dwPwdSize)
         if(HB_FAILED(hr)) {
             return FALSE;
         }
-	}
+    }
 
     hr = GenerateRandomPassword(wcPassword,dwPwdSize);
     if(HB_FAILED(hr)) {
         return FALSE;
     }
 
-	//create a new user
-	UserInfo1.usri1_name = YONTMA_SERVICE_ACCOUNT_NAME;
-	UserInfo1.usri1_password = wcPassword;
-	UserInfo1.usri1_priv = USER_PRIV_USER;
-	dwResult = NetUserAdd(NULL,1,(LPBYTE)&UserInfo1,NULL);
-	if(dwResult != NERR_Success) {
-		return FALSE;
-	}
+    //create a new user
+    UserInfo1.usri1_name = YONTMA_SERVICE_ACCOUNT_NAME;
+    UserInfo1.usri1_password = wcPassword;
+    UserInfo1.usri1_priv = USER_PRIV_USER;
+    dwResult = NetUserAdd(NULL,1,(LPBYTE)&UserInfo1,NULL);
+    if(dwResult != NERR_Success) {
+        return FALSE;
+    }
 
     
     //
@@ -295,21 +295,21 @@ cleanexit:
 
 bool InitLsaString(PLSA_UNICODE_STRING pLsaString,LPCWSTR pwszString)
 {
-	DWORD dwLen = 0;
+    DWORD dwLen = 0;
 
-	if (NULL == pLsaString) return FALSE;
+    if (NULL == pLsaString) return FALSE;
 
-	if (NULL != pwszString) {
-		dwLen = wcslen(pwszString);
-		if (dwLen > 0x7ffe) return FALSE;
-	}
+    if (NULL != pwszString) {
+        dwLen = wcslen(pwszString);
+        if (dwLen > 0x7ffe) return FALSE;
+    }
 
-	// Store the string.
-	pLsaString->Buffer = (WCHAR *)pwszString;
-	pLsaString->Length =  (USHORT)dwLen * sizeof(WCHAR);
-	pLsaString->MaximumLength= (USHORT)(dwLen+1) * sizeof(WCHAR);
+    // Store the string.
+    pLsaString->Buffer = (WCHAR *)pwszString;
+    pLsaString->Length =  (USHORT)dwLen * sizeof(WCHAR);
+    pLsaString->MaximumLength= (USHORT)(dwLen+1) * sizeof(WCHAR);
 
-	return TRUE;
+    return TRUE;
 }
 
 HRESULT GenerateRandomPassword(__out PWSTR pszPassword, __in size_t cchPassword)

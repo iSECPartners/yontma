@@ -86,46 +86,46 @@ HRESULT CreateYontmaService(__in PCTSTR pServicePath,
     SC_HANDLE hSCManager = NULL;
     SC_HANDLE hServiceLocal = NULL;
     SERVICE_DESCRIPTION serviceDescription = { SERVICE_FRIENDLY_DESCRIPTION };
-	WCHAR wcPassword[16];
+    WCHAR wcPassword[16];
 
     hr = OpenServiceManager(&hSCManager);
     if(HB_FAILED(hr)) {
         goto cleanexit;
     }
 
-	if(CreateYontmaUser(wcPassword,sizeof(wcPassword) / sizeof(WCHAR))) {
-		printf("Installing as %S user\n",YONTMA_SERVICE_ACCOUNT_NAME);
-		hServiceLocal = CreateService(hSCManager,
-									  SERVICE_NAME,
-									  SERVICE_DISPLAY_NAME,
-									  SERVICE_ALL_ACCESS,
-									  SERVICE_WIN32_OWN_PROCESS,
-									  SERVICE_AUTO_START,
-									  SERVICE_ERROR_IGNORE,
-									  pServicePath,
-									  NULL,
-									  NULL,
-									  NULL,
+    if(CreateYontmaUser(wcPassword,sizeof(wcPassword) / sizeof(WCHAR))) {
+        printf("Installing as %S user\n",YONTMA_SERVICE_ACCOUNT_NAME);
+        hServiceLocal = CreateService(hSCManager,
+                                      SERVICE_NAME,
+                                      SERVICE_DISPLAY_NAME,
+                                      SERVICE_ALL_ACCESS,
+                                      SERVICE_WIN32_OWN_PROCESS,
+                                      SERVICE_AUTO_START,
+                                      SERVICE_ERROR_IGNORE,
+                                      pServicePath,
+                                      NULL,
+                                      NULL,
+                                      NULL,
                                       YONTMA_SERVICE_ACCOUNT_NAME_WITH_DOMAIN,
-									  wcPassword);
-		SecureZeroMemory(wcPassword,sizeof(wcPassword));
-	}
-	else {
-		printf("Installing as SYSTEM user\n",YONTMA_SERVICE_ACCOUNT_NAME);
-		hServiceLocal = CreateService(hSCManager,
-									  SERVICE_NAME,
-									  SERVICE_DISPLAY_NAME,
-									  SERVICE_ALL_ACCESS,
-									  SERVICE_WIN32_OWN_PROCESS,
-									  SERVICE_AUTO_START,
-									  SERVICE_ERROR_IGNORE,
-									  pServicePath,
-									  NULL,
-									  NULL,
-									  NULL,
-									  NULL,
-									  NULL);
-	}
+                                      wcPassword);
+        SecureZeroMemory(wcPassword,sizeof(wcPassword));
+    }
+    else {
+        printf("Installing as SYSTEM user\n",YONTMA_SERVICE_ACCOUNT_NAME);
+        hServiceLocal = CreateService(hSCManager,
+                                      SERVICE_NAME,
+                                      SERVICE_DISPLAY_NAME,
+                                      SERVICE_ALL_ACCESS,
+                                      SERVICE_WIN32_OWN_PROCESS,
+                                      SERVICE_AUTO_START,
+                                      SERVICE_ERROR_IGNORE,
+                                      pServicePath,
+                                      NULL,
+                                      NULL,
+                                      NULL,
+                                      NULL,
+                                      NULL);
+    }
     if(hServiceLocal == NULL) {
         if(GetLastError() != ERROR_SERVICE_EXISTS) {
             printf("CreateService error: %d\r\n", GetLastError());
