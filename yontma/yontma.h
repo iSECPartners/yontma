@@ -37,6 +37,8 @@ HRESULT GetInternetAdapterAddresses(__inout PIP_ADAPTER_ADDRESSES* ppAdapterAddr
 DWORD WINAPI PowerMonitorThread(LPVOID lpParams);
 DWORD WINAPI WiredEthernetMonitorThread(LPVOID lpParams);
 
+BOOL IsUserAdmin(void);
+
 //DEBUG
 
 #ifdef _DEBUG

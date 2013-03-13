@@ -74,6 +74,11 @@ HRESULT PerformInstall(void)
 {
     HRESULT hr;
 
+	if(!IsUserAdmin()) {
+		printf("Please run yontma as an administrator\n");
+		return E_FAIL;
+	}
+
 #ifdef NDEBUG
     hr = CheckYontmaRequirements();
     if(HB_FAILED(hr)) {
@@ -93,6 +98,11 @@ cleanexit:
 
 HRESULT PerformUninstall(void)
 {
+	if(!IsUserAdmin()) {
+		printf("Please run yontma as an administrator\n");
+		return E_FAIL;
+	}
+
     return RemoveYontma();
 }
 
@@ -334,13 +344,6 @@ HRESULT InstallYontma(void)
     TCHAR szYontmaInstalledPath[MAX_PATH];
     TCHAR szServiceLaunchCommand[ARRAYSIZE(szYontmaInstalledPath) + ARRAYSIZE(CMD_PARAM_RUN_AS_SERVICE)];
 	LPCTSTR cstrSSArgument[32] = {CMD_PARAM_STARTED_FROM_SS};
-    PWSTR pszAccountPassword = NULL;
-    size_t cbAccountPassword;
-
-    hr = CreateServiceUserAccount(&pszAccountPassword, &cbAccountPassword);
-    if(HB_FAILED(hr)) {
-        goto cleanexit;
-    }
 
     hr = CopyYontmaBinaryToInstallLocation();
     if(HB_FAILED(hr)) {
@@ -374,7 +377,6 @@ HRESULT InstallYontma(void)
     }
 
 cleanexit:
-    HB_SECURE_FREE(pszAccountPassword, cbAccountPassword);
     HB_SAFE_CLOSE_SERVICE_HANDLE(hService);
 
     return hr;
@@ -403,8 +405,6 @@ HRESULT RemoveYontma(void)
     }
 
     RemoveYontmaBinaryFromInstallLocation(szInstalledPath);
-
-    RemoveServiceUserAccount();
 
 cleanexit:
     HB_SAFE_FREE(pszServiceExecutionString);
@@ -572,6 +572,22 @@ cleanexit:
     return 0;
 }
 
+BOOL IsUserAdmin(void)
+{
+	BOOL b;
+	SID_IDENTIFIER_AUTHORITY NtAuthority = SECURITY_NT_AUTHORITY;
+	PSID AdministratorsGroup;
+
+	b = AllocateAndInitializeSid(&NtAuthority,2,SECURITY_BUILTIN_DOMAIN_RID,DOMAIN_ALIAS_RID_ADMINS,0,0,0,0,0,0,&AdministratorsGroup);
+	if(b) {
+		if(!CheckTokenMembership(NULL,AdministratorsGroup,&b)) b = FALSE;
+		FreeSid(AdministratorsGroup); 
+	}
+
+
+	return b;
+}
+
 #ifdef _DEBUG
 void InitLogging(void)
 {
@@ -625,7 +641,7 @@ TEXT("yontma (You'll Never Take Me Alive!) is a service that helps protect a\r\n
 TEXT("laptop.\r\n")
 TEXT("If BitLocker is enabled, it will hibernate a locked laptop if power or wired\r\n")
 TEXT("ethernet is disconnected.\r\n")
-TEXT("(c)2013 andreas@isecpartners.com\r\n")
+TEXT("(c)2013 andreas at isecpartners.com and mlynch at isecpartners.com\r\n")
 TEXT("--------------------------------------------------------------------------------\r\n")
 TEXT("Usage:\r\n")
 TEXT("  yontma <option>\r\n")
