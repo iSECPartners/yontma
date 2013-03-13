@@ -4,6 +4,7 @@
 #define YONTMA_SERVICE_ACCOUNT_COMMENT L"Service account for YoNTMA (You'll Never Take Me Alive!) service."
 #define STATUS_SUCCESS ((NTSTATUS)0x00000000L)
 
+HRESULT CheckIfServiceUserExists(PBOOL pbUserExists);
 BOOL AdjustYontmaAccountPrivileges(void);
 bool InitLsaString(PLSA_UNICODE_STRING pLsaString,LPCWSTR pwszString);
 BOOL GenerateRandomPassword(WCHAR *pBuffer,DWORD dwSize);
@@ -97,22 +98,58 @@ cleanexit:
     return hr;
 }
 
+HRESULT CheckIfServiceUserExists(PBOOL pbUserExists)
+{
+    HRESULT hr;
+    NET_API_STATUS nerr;
+    PUSER_INFO_0 pUserInfo = NULL;
+    BOOL bUserExistsLocal;
+
+    nerr = NetUserGetInfo(NULL,
+                          YONTMA_SERVICE_ACCOUNT_NAME,
+                          0,
+                          (LPBYTE*)&pUserInfo);
+    if(nerr == NERR_Success) {
+        bUserExistsLocal = TRUE;
+    }
+    else if(nerr == NERR_UserNotFound) {
+        bUserExistsLocal = FALSE;
+    }
+    else {
+        hr = E_FAIL;
+        goto cleanexit;
+    }
+
+    *pbUserExists = bUserExistsLocal;
+    hr = S_OK;
+
+cleanexit:
+    HB_SAFE_NETAPI_FREE(pUserInfo);
+
+    return hr;
+}
+
 //Creates a user for the yontma service
 //returns TRUE if user is created, FALSE otherwise
 BOOL CreateYontmaUser(WCHAR *wcPassword,DWORD dwPwdSize)
 {
-	USER_INFO_0 *pUserInfo0;
+    HRESULT hr;
+    BOOL bServiceUserExists;
 	USER_INFO_1 UserInfo1 = {0};
 	DWORD dwResult,dwReturn,dwEntries,dwTotalEntries,i;
 	GROUP_USERS_INFO_0 *pGroupInfo0;
 	LOCALGROUP_MEMBERS_INFO_3 LocalGroupMembersInfo3 = {0};
-
+    
 	//Check if the user already exist. Delete if it does
-	dwResult = NetUserGetInfo(NULL,YONTMA_SERVICE_ACCOUNT_NAME,0,(LPBYTE*)&pUserInfo0);
-	NetApiBufferFree(pUserInfo0);
-	if(dwResult == NERR_Success)
-	{
-		if(NetUserDel(NULL,YONTMA_SERVICE_ACCOUNT_NAME) != NERR_Success) return FALSE;
+    hr = CheckIfServiceUserExists(&bServiceUserExists);
+    if(HB_FAILED(hr)) {
+        return FALSE;
+    }
+    if(bServiceUserExists) {
+        hr = RemoveServiceUserAccount();
+        if(HB_FAILED(hr)) {
+            return FALSE;
+        }
 	}
 
 	//generate a new, random passwords
