@@ -7,7 +7,8 @@
 HRESULT CheckIfServiceUserExists(PBOOL pbUserExists);
 BOOL AdjustYontmaAccountPrivileges(void);
 bool InitLsaString(PLSA_UNICODE_STRING pLsaString,LPCWSTR pwszString);
-BOOL GenerateRandomPassword(WCHAR *pBuffer,DWORD dwSize);
+HRESULT GenerateRandomPassword(__out PWSTR pszPassword, __in size_t cchPassword);
+HRESULT PasswordFromBytes(__in PBYTE pBytes, __in size_t cbBytes, __out PWSTR pszPassword, __in size_t cbPassword);
 
 //
 // Description:
@@ -152,8 +153,10 @@ BOOL CreateYontmaUser(WCHAR *wcPassword,DWORD dwPwdSize)
         }
 	}
 
-	//generate a new, random passwords
-	if(!GenerateRandomPassword(wcPassword,dwPwdSize)) return FALSE;
+    hr = GenerateRandomPassword(wcPassword,dwPwdSize);
+    if(HB_FAILED(hr)) {
+        return FALSE;
+    }
 
 	//create a new user
 	UserInfo1.usri1_name = YONTMA_SERVICE_ACCOUNT_NAME;
@@ -238,30 +241,98 @@ bool InitLsaString(PLSA_UNICODE_STRING pLsaString,LPCWSTR pwszString)
 	return TRUE;
 }
 
-//dwSize is the size of pBuffer in WCHAR
-BOOL GenerateRandomPassword(WCHAR *pBuffer,DWORD dwSize)
+HRESULT GenerateRandomPassword(__out PWSTR pszPassword, __in size_t cchPassword)
 {
-	HCRYPTPROV hCryptProvider;
-	BYTE bRandomBuffer[256];
-	DWORD i;
+    HRESULT hr;
+    HCRYPTPROV hCryptProvider = NULL;
+    size_t cbRandomBuffer = 0;
+    PBYTE pbRandomBuffer = NULL;
+    size_t cbPassword;
+    
+    if(!CryptAcquireContext(&hCryptProvider,
+                            NULL,
+                            NULL,
+                            PROV_RSA_FULL,
+                            CRYPT_VERIFYCONTEXT)) {
+        hr = HRESULT_FROM_WIN32(GetLastError());
+        goto cleanexit;
+    }
 
-	if(dwSize > sizeof(bRandomBuffer) * sizeof(WCHAR)) dwSize = sizeof(bRandomBuffer) * sizeof(WCHAR);
-	
-	if(!CryptAcquireContext(&hCryptProvider,NULL,NULL,PROV_RSA_FULL,CRYPT_VERIFYCONTEXT)) {
-		printf("CryptAcquireContext error: 0x%08x\n",GetLastError());
-		return FALSE;
-	}
+    //
+    // The size of the random buffer will be the number of characters in the
+    // password minus one, as the last character is NULL.
+    //
 
-	if(!CryptGenRandom(hCryptProvider,sizeof(bRandomBuffer),bRandomBuffer)) {
-		CryptReleaseContext(hCryptProvider,0);
-		return FALSE;
-	}
+    hr = SizeTSub(cchPassword, 1, &cbRandomBuffer);
+    if(HB_FAILED(hr)) {
+        goto cleanexit;
+    }
 
-	//Make sure all byte are within printable range. We do lose some entropy, but we still have enough
-	//Also convert into WCHAR
-	for(i = 0; i < dwSize - 1; i++) pBuffer[i] = (bRandomBuffer[i] % 0x4d) + 0x21;
-	pBuffer[i] = '\0';
+    pbRandomBuffer = (PBYTE)malloc(cbRandomBuffer);
+    if(!pbRandomBuffer) {
+        hr = E_OUTOFMEMORY;
+        goto cleanexit;
+    }
 
-	CryptReleaseContext(hCryptProvider,0);
-	return TRUE;
+    if(!CryptGenRandom(hCryptProvider,
+                       cbRandomBuffer,
+                       pbRandomBuffer)) {
+        hr = HRESULT_FROM_WIN32(GetLastError());
+        goto cleanexit;
+    }
+
+    hr = SizeTMult(cchPassword, sizeof(WCHAR), &cbPassword);
+    if(HB_FAILED(hr)) {
+        goto cleanexit;
+    }
+
+    hr = PasswordFromBytes(pbRandomBuffer, cbRandomBuffer, pszPassword, cbPassword);
+    if(HB_FAILED(hr)) {
+        goto cleanexit;
+    }
+
+cleanexit:
+    CryptReleaseContext(hCryptProvider,0);
+    HB_SECURE_FREE(pbRandomBuffer, cbRandomBuffer);
+
+    return hr;
+}
+
+HRESULT PasswordFromBytes(__in PBYTE pBytes, __in size_t cbBytes, __out PWSTR pszPassword, __in size_t cbPassword)
+{
+    HRESULT hr;
+    size_t cbAsciiPassword = 0;
+    PSTR pszAsciiPassword = NULL;
+
+    cbAsciiPassword = cbPassword / 2;
+    pszAsciiPassword = (PSTR)malloc(cbAsciiPassword);
+    if(!pszAsciiPassword) {
+        hr = E_OUTOFMEMORY;
+        goto cleanexit;
+    }
+
+    //
+    // Make sure all bytes are within printable range. We do lose some entropy,
+    // but we still have enough.
+    //
+
+    for (size_t i = 0; i < cbBytes; i++) 
+    {
+        pszAsciiPassword[i] = (pBytes[i] % 0x4d) + 0x21;
+    }
+    pszAsciiPassword[cbAsciiPassword - 1] = '\0';
+
+    //
+    // Convert ASCII password to Unicode
+    //
+
+    hr = StringCbPrintfW(pszPassword, cbPassword, L"%s", pszAsciiPassword);
+    if(HB_FAILED(hr)) {
+        goto cleanexit;
+    }
+
+cleanexit:
+    HB_SECURE_FREE(pszAsciiPassword, cbAsciiPassword);
+
+    return hr;
 }
