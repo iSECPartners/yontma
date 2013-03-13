@@ -178,11 +178,6 @@ HRESULT DeleteYontmaService(void)
         goto cleanexit;
     }
 
-	if(!DeleteYontmaUser()) {
-		printf("DeleteYontmaUser error: %d\r\n", GetLastError());
-        goto cleanexit;
-	}
-
     hr = S_OK;
 
 cleanexit:

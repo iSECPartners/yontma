@@ -144,12 +144,6 @@ BOOL CreateYontmaUser(WCHAR *wcPassword,DWORD dwPwdSize)
 	return TRUE;
 }
 
-BOOL DeleteYontmaUser(void)
-{
-	if(NetUserDel(NULL,YONTMA_SERVICE_ACCOUNT_NAME) != NERR_Success) return FALSE;
-	else return TRUE;
-}
-
 BOOL AdjustYontmaAccountPrivileges(void)
 {
 	PBYTE SidBuffer[128];
