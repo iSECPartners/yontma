@@ -19,8 +19,15 @@ HRESULT CreateServiceUserAccount(__out PWSTR* ppszAccountPassword, __out size_t*
     PWSTR pszAccountPasswordLocal;
     DWORD badParameterIndex;
 
+    //
+    // This value is chosen arbitrarily as a long password. Could increase or decrease if there are
+    // compatibility issues.
+    //
+
+    const size_t cchPasswordLength = 40;
+
     size_t cbAccountPasswordLocal;
-    hr = SizeTMult(LM20_PWLEN, sizeof(WCHAR), &cbAccountPasswordLocal);
+    hr = SizeTMult(cchPasswordLength, sizeof(WCHAR), &cbAccountPasswordLocal);
     if(HB_FAILED(hr)) {
         goto cleanexit;
     }
@@ -84,3 +91,4 @@ cleanexit:
 
     return hr;
 }
+
