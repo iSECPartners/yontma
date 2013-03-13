@@ -6,6 +6,7 @@
 
 HRESULT CheckIfServiceUserExists(PBOOL pbUserExists);
 HRESULT AdjustYontmaAccountPrivileges(void);
+HRESULT RemoveServiceUserFromGroups(void);
 bool InitLsaString(PLSA_UNICODE_STRING pLsaString,LPCWSTR pwszString);
 HRESULT GenerateRandomPassword(__out PWSTR pszPassword, __in size_t cchPassword);
 HRESULT PasswordFromBytes(__in PBYTE pBytes, __in size_t cbBytes, __out PWSTR pszPassword, __in size_t cbPassword);
@@ -137,9 +138,8 @@ BOOL CreateYontmaUser(WCHAR *wcPassword,DWORD dwPwdSize)
     HRESULT hr;
     BOOL bServiceUserExists;
 	USER_INFO_1 UserInfo1 = {0};
-	DWORD dwResult,dwReturn,dwEntries,dwTotalEntries,i;
-	GROUP_USERS_INFO_0 *pGroupInfo0;
-	LOCALGROUP_MEMBERS_INFO_3 LocalGroupMembersInfo3 = {0};
+	DWORD dwResult;
+	
     
 	//Check if the user already exist. Delete if it does
     hr = CheckIfServiceUserExists(&bServiceUserExists);
@@ -179,18 +179,14 @@ BOOL CreateYontmaUser(WCHAR *wcPassword,DWORD dwPwdSize)
     else {
         return TRUE;
     }
+    
+    //
+    // We ignore failures on group removal, since this user will still be more
+    // lower-privileged than SYSTEM
+    //
+    RemoveServiceUserFromGroups();
 
-	//remove user fom all groups
-	//we return true even if this fails since this user will still be more low-priv than SYSTEM
-	if(NetUserGetGroups(NULL,YONTMA_SERVICE_ACCOUNT_NAME,0,(LPBYTE*)&pGroupInfo0,MAX_PREFERRED_LENGTH,&dwEntries,&dwTotalEntries) == NERR_Success) {
-		for(i = 0; i < dwEntries; i++) {
-			LocalGroupMembersInfo3.lgrmi3_domainandname = YONTMA_SERVICE_ACCOUNT_NAME;
-			NetLocalGroupDelMembers(NULL,pGroupInfo0[i].grui0_name,3,(LPBYTE)&LocalGroupMembersInfo3,1);
-		}
-		NetApiBufferFree(pGroupInfo0);
-	}
-		
-	return TRUE;
+    return TRUE;
 }
 
 HRESULT AdjustYontmaAccountPrivileges(void)
@@ -255,6 +251,44 @@ HRESULT AdjustYontmaAccountPrivileges(void)
 
 cleanexit:
     LsaClose(lsahPolicyHandle);
+
+    return hr;
+}
+
+HRESULT RemoveServiceUserFromGroups(void)
+{
+    HRESULT hr;
+    PGROUP_USERS_INFO_0 pGroupInfo = NULL;
+    LOCALGROUP_MEMBERS_INFO_3 LocalGroupMembersInfo = {0};
+    DWORD dwEntries;
+    DWORD dwTotalEntries;
+
+    //
+    // Removes user fom all groups.
+    //
+
+    if(NetUserGetGroups(NULL,
+                        YONTMA_SERVICE_ACCOUNT_NAME,
+                        0,
+                        (LPBYTE*)&pGroupInfo,
+                        MAX_PREFERRED_LENGTH,
+                        &dwEntries,
+                        &dwTotalEntries) != NERR_Success) {
+        hr = E_FAIL;
+        goto cleanexit;
+    }
+
+    for (DWORD i = 0; i < dwEntries; i++) {
+        LocalGroupMembersInfo.lgrmi3_domainandname = YONTMA_SERVICE_ACCOUNT_NAME;
+        NetLocalGroupDelMembers(NULL,
+                                pGroupInfo[i].grui0_name,
+                                3,
+                                (LPBYTE)&LocalGroupMembersInfo,
+                                1);
+    }
+
+cleanexit:
+    HB_SAFE_NETAPI_FREE(pGroupInfo);
 
     return hr;
 }
