@@ -319,7 +319,6 @@ HRESULT CheckYontmaRequirements()
     hr = IsOsVolumeProtectedByBitLocker(&bIsOsVolumeProtectedByBitLocker);
     if(HB_FAILED(hr)) {
         printf("Error checking BitLocker status. Error=0x%x\r\n", hr);
-        printf("Please make sure yontma was executed as administrator\r\n");
         goto cleanexit;
     }
     if(!bIsOsVolumeProtectedByBitLocker) {
