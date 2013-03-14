@@ -43,7 +43,7 @@ HRESULT CreateServiceUserAccount(__out PWSTR* ppszAccountPassword, __out size_t*
     //
 
     const size_t cchPasswordLength = 40;
-    size_t cbAccountPasswordLocal;
+    size_t cbAccountPasswordLocal = 0;
 
     hr = CheckIfServiceUserExists(&bServiceUserExists);
     if(HB_FAILED(hr)) {
