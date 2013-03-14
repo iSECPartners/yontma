@@ -454,11 +454,23 @@ void InitLogging(void)
     CreateMutex(NULL, FALSE, LOGGING_MUTEX_NAME);
 }
 
+//
+// Description:
+//  Writes a message to the debug log. Path is:
+//   Under LocalService: C:\Windows\Temp\yontmalog.txt
+//   Under yontmauser:   C:\Users\yontmauser\AppData\Local\Temp\yontmalog.txt
+//
+// Parameters:
+//  pStr - Debug message to write to the log.
+//
 void WriteLineToLog(char *pStr)
 {
+    HRESULT hr;
     HANDLE fh;
     DWORD dwBytes;
     HANDLE hLoggingMutex;
+    WCHAR szTempPath[MAX_PATH];
+    WCHAR szLogFilePath[MAX_PATH];
     static const char CRLF[] = "\r\n";
     
     hLoggingMutex = OpenMutex(SYNCHRONIZE, FALSE, LOGGING_MUTEX_NAME);
@@ -468,7 +480,20 @@ void WriteLineToLog(char *pStr)
 
     WaitForSingleObject(hLoggingMutex, INFINITE);
 
-    fh = CreateFile(TEXT("c:\\yontmalog.txt"),
+    if(!GetTempPath(ARRAYSIZE(szTempPath), szTempPath)) {
+        return;
+    }
+
+    hr = StringCchPrintf(szLogFilePath,
+                         ARRAYSIZE(szLogFilePath),
+                         TEXT("%s%s"),
+                         szTempPath,
+                         TEXT("yontmalog.txt"));
+    if(HB_FAILED(hr)) {
+        return;
+    }
+
+    fh = CreateFile(szLogFilePath,
                     FILE_APPEND_DATA,
                     FILE_SHARE_READ | FILE_SHARE_WRITE,
                     NULL,
