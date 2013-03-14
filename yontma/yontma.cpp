@@ -419,6 +419,8 @@ HRESULT RemoveYontma(void)
 
     RemoveYontmaBinaryFromInstallLocation(szInstalledPath);
 
+	DisableServiceUserAccount();
+
 cleanexit:
     HB_SAFE_FREE(pszServiceExecutionString);
 
