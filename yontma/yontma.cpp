@@ -332,15 +332,10 @@ HRESULT InstallYontma(void)
     int iStatus;
     SC_HANDLE hService = NULL;
     TCHAR szYontmaInstalledPath[MAX_PATH];
-    TCHAR szServiceLaunchCommand[ARRAYSIZE(szYontmaInstalledPath) + ARRAYSIZE(CMD_PARAM_RUN_AS_SERVICE)];
-    LPCTSTR cstrSSArgument[32] = {CMD_PARAM_STARTED_FROM_SS};
     PWSTR pszAccountPassword = NULL;
     size_t cbAccountPassword;
-
-    hr = CreateServiceUserAccount(&pszAccountPassword, &cbAccountPassword);
-    if(HB_FAILED(hr)) {
-        goto cleanexit;
-    }
+    TCHAR szServiceLaunchCommand[ARRAYSIZE(szYontmaInstalledPath) + ARRAYSIZE(CMD_PARAM_RUN_AS_SERVICE)];
+    LPCTSTR cstrSSArgument[32] = {CMD_PARAM_STARTED_FROM_SS};
 
     hr = CopyYontmaBinaryToInstallLocation();
     if(HB_FAILED(hr)) {
@@ -352,6 +347,19 @@ HRESULT InstallYontma(void)
         goto cleanexit;
     }
 
+    hr = CreateServiceUserAccount(&pszAccountPassword, &cbAccountPassword);
+    
+    //
+    // Don't fail if we're unable to create the low-privileged YoNTMA user.
+    //
+
+    if(HB_FAILED(hr)) {
+        hr = S_OK;
+        HB_SECURE_FREE(pszAccountPassword, cbAccountPassword);
+        printf("Failed to create yontma user account: %d\r\n", GetLastError());
+        printf("Installing YoNTMA to run as LocalService.\r\n");
+    }
+
     hr = StringCchPrintf(szServiceLaunchCommand,
                          ARRAYSIZE(szServiceLaunchCommand),
                          TEXT("\"%s\" %s"),
@@ -361,7 +369,7 @@ HRESULT InstallYontma(void)
         goto cleanexit;
     }
 
-    hr = CreateYontmaService(szServiceLaunchCommand, &hService);
+    hr = CreateYontmaService(szServiceLaunchCommand, pszAccountPassword, &hService);
     if(HB_FAILED(hr)) {
         goto cleanexit;
     }

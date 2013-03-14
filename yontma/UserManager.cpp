@@ -13,7 +13,7 @@ HRESULT PasswordFromBytes(__in PBYTE pBytes, __in size_t cbBytes, __out PWSTR ps
 
 //
 // Description:
-//  Creates a new user account under which the YoNTMA service will run.
+//  Creates a new, limited-privilege user account under which the YoNTMA service will run.
 //
 // Parameters:
 //  ppszAccountPassword - On success, contains the randomly generated password of the new account.
@@ -24,17 +24,39 @@ HRESULT PasswordFromBytes(__in PBYTE pBytes, __in size_t cbBytes, __out PWSTR ps
 HRESULT CreateServiceUserAccount(__out PWSTR* ppszAccountPassword, __out size_t* cbAccountPassword)
 {
     HRESULT hr;
-    PWSTR pszAccountPasswordLocal;
+    BOOL bServiceUserExists;
+    PWSTR pszAccountPasswordLocal = NULL;
     DWORD badParameterIndex;
-
+    USER_INFO_1 userInfo = {
+      YONTMA_SERVICE_ACCOUNT_NAME,
+      NULL,
+      0,
+      USER_PRIV_USER,
+      NULL,
+      YONTMA_SERVICE_ACCOUNT_COMMENT,
+      UF_DONT_EXPIRE_PASSWD,
+      NULL
+    };
     //
     // This value is chosen arbitrarily as a long password. Could increase or decrease if there are
     // compatibility issues.
     //
 
     const size_t cchPasswordLength = 40;
-
     size_t cbAccountPasswordLocal;
+
+    hr = CheckIfServiceUserExists(&bServiceUserExists);
+    if(HB_FAILED(hr)) {
+        goto cleanexit;
+    }
+
+    if(bServiceUserExists) {
+        hr = RemoveServiceUserAccount();
+        if(HB_FAILED(hr)) {
+            goto cleanexit;
+        }
+    }
+
     hr = SizeTMult(cchPasswordLength, sizeof(WCHAR), &cbAccountPasswordLocal);
     if(HB_FAILED(hr)) {
         goto cleanexit;
@@ -46,22 +68,12 @@ HRESULT CreateServiceUserAccount(__out PWSTR* ppszAccountPassword, __out size_t*
         goto cleanexit;
     }
 
-    //TODO: Replace with a secure random password
-    hr = StringCbCopy(pszAccountPasswordLocal, cbAccountPasswordLocal, L"fakefornow");
+    hr = GenerateRandomPassword(pszAccountPasswordLocal,cchPasswordLength);
     if(HB_FAILED(hr)) {
-        goto cleanexit;
+        return FALSE;
     }
 
-    USER_INFO_1 userInfo = {
-      YONTMA_SERVICE_ACCOUNT_NAME,
-      pszAccountPasswordLocal,
-      0,
-      USER_PRIV_USER,
-      NULL,
-      YONTMA_SERVICE_ACCOUNT_COMMENT,
-      UF_DONT_EXPIRE_PASSWD,
-      NULL
-    };
+    userInfo.usri1_password = pszAccountPasswordLocal;
     
     if(NetUserAdd(NULL,
                   1,
@@ -70,6 +82,18 @@ HRESULT CreateServiceUserAccount(__out PWSTR* ppszAccountPassword, __out size_t*
         hr = E_FAIL;
         goto cleanexit;
     }
+    
+    hr = AdjustYontmaAccountPrivileges();
+    if(HB_FAILED(hr)) {
+        goto cleanexit;
+    }
+    
+    //
+    // We ignore failures on group removal, since this user will still be more
+    // lower-privileged than SYSTEM
+    //
+
+    RemoveServiceUserFromGroups();
 
     *ppszAccountPassword = pszAccountPasswordLocal;
     pszAccountPasswordLocal = NULL;
@@ -129,64 +153,6 @@ cleanexit:
     HB_SAFE_NETAPI_FREE(pUserInfo);
 
     return hr;
-}
-
-//Creates a user for the yontma service
-//returns TRUE if user is created, FALSE otherwise
-BOOL CreateYontmaUser(WCHAR *wcPassword,DWORD dwPwdSize)
-{
-    HRESULT hr;
-    BOOL bServiceUserExists;
-    USER_INFO_1 UserInfo1 = {0};
-    DWORD dwResult;
-    
-    
-    //Check if the user already exist. Delete if it does
-    hr = CheckIfServiceUserExists(&bServiceUserExists);
-    if(HB_FAILED(hr)) {
-        return FALSE;
-    }
-    if(bServiceUserExists) {
-        hr = RemoveServiceUserAccount();
-        if(HB_FAILED(hr)) {
-            return FALSE;
-        }
-    }
-
-    hr = GenerateRandomPassword(wcPassword,dwPwdSize);
-    if(HB_FAILED(hr)) {
-        return FALSE;
-    }
-
-    //create a new user
-    UserInfo1.usri1_name = YONTMA_SERVICE_ACCOUNT_NAME;
-    UserInfo1.usri1_password = wcPassword;
-    UserInfo1.usri1_priv = USER_PRIV_USER;
-    dwResult = NetUserAdd(NULL,1,(LPBYTE)&UserInfo1,NULL);
-    if(dwResult != NERR_Success) {
-        return FALSE;
-    }
-
-    
-    //
-    // We need this to succeed to be able to use our new user.
-    //
-
-    hr = AdjustYontmaAccountPrivileges();
-    if(HB_FAILED(hr)) {
-        return FALSE;
-    }
-    else {
-        return TRUE;
-    }
-    
-    //
-    // We ignore failures on group removal, since this user will still be more
-    // lower-privileged than SYSTEM
-    //
-    RemoveServiceUserFromGroups();
-
-    return TRUE;
 }
 
 HRESULT AdjustYontmaAccountPrivileges(void)
@@ -287,6 +253,8 @@ HRESULT RemoveServiceUserFromGroups(void)
                                 1);
     }
 
+    hr = S_OK;
+
 cleanexit:
     HB_SAFE_NETAPI_FREE(pGroupInfo);
 
@@ -374,8 +342,10 @@ HRESULT PasswordFromBytes(__in PBYTE pBytes, __in size_t cbBytes, __out PWSTR ps
     HRESULT hr;
     size_t cbAsciiPassword = 0;
     PSTR pszAsciiPassword = NULL;
+    size_t cchPassword;
+    size_t cchConverted;
 
-    cbAsciiPassword = cbPassword / 2;
+    cbAsciiPassword = cbPassword / sizeof(WCHAR);
     pszAsciiPassword = (PSTR)malloc(cbAsciiPassword);
     if(!pszAsciiPassword) {
         hr = E_OUTOFMEMORY;
@@ -397,10 +367,17 @@ HRESULT PasswordFromBytes(__in PBYTE pBytes, __in size_t cbBytes, __out PWSTR ps
     // Convert ASCII password to Unicode
     //
 
-    hr = StringCbPrintfW(pszPassword, cbPassword, L"%s", pszAsciiPassword);
-    if(HB_FAILED(hr)) {
+    cchPassword = cbPassword / sizeof(WCHAR);
+    if (mbstowcs_s(&cchConverted,
+                   pszPassword,
+                   cbPassword / sizeof(WORD),
+                   pszAsciiPassword,
+                   cchPassword)) {
+        hr = E_FAIL;
         goto cleanexit;
     }
+
+    hr = S_OK;
 
 cleanexit:
     HB_SECURE_FREE(pszAsciiPassword, cbAsciiPassword);
