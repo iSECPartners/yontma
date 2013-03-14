@@ -190,12 +190,10 @@ void __stdcall ServiceMain(int argc, TCHAR* argv[])
                                       FALSE,
                                       DEFAULT_SLEEP_TIME)) {
             case WAIT_OBJECT_0 + DisconnectACEventIndex: //AC was disconnected
-                RemoveYontma();
                 WriteLineToLog("ServiceMain: AC disconnected -> suspend");
                 HibernateMachine();
                 break;
             case WAIT_OBJECT_0 + DisconnectWiredEthernetEventIndex: //wired ether was disconnected
-                RemoveYontma();
                 WriteLineToLog("ServiceMain: Wired ether disconnected -> suspend");
                 HibernateMachine();
                 break;
