@@ -5,6 +5,7 @@
 #define STATUS_SUCCESS ((NTSTATUS)0x00000000L)
 
 HRESULT AdjustYontmaAccountPrivileges(void);
+HRESULT EnableServiceUserAccount(__in PWSTR pszNewPassword);
 HRESULT RemoveServiceUserFromGroups(void);
 bool InitLsaString(PLSA_UNICODE_STRING pLsaString,LPCWSTR pwszString);
 HRESULT GenerateRandomPassword(__out PWSTR pszPassword, __in size_t cchPassword);
@@ -12,7 +13,8 @@ HRESULT PasswordFromBytes(__in PBYTE pBytes, __in size_t cbBytes, __out PWSTR ps
 
 //
 // Description:
-//  Creates a new, limited-privilege user account under which the YoNTMA service will run.
+//  Creates a new, limited-privilege user account under which the YoNTMA service will run or
+//  re-enables a previously created YoNTMA account (if YoNTMA was installed previously).
 //
 // Parameters:
 //  ppszAccountPassword - On success, contains the randomly generated password of the new account.
@@ -26,7 +28,6 @@ HRESULT CreateServiceUserAccount(__out PWSTR* ppszAccountPassword, __out size_t*
     BOOL bServiceUserExists;
     PWSTR pszAccountPasswordLocal = NULL;
     DWORD badParameterIndex,dwResult;
-	USER_INFO_1 *pUserInfo1;
     USER_INFO_1 userInfo = {
       YONTMA_SERVICE_ACCOUNT_NAME,
       NULL,
@@ -37,6 +38,7 @@ HRESULT CreateServiceUserAccount(__out PWSTR* ppszAccountPassword, __out size_t*
       UF_DONT_EXPIRE_PASSWD,
       NULL
     };
+
     //
     // This value is chosen arbitrarily as a long password. Could increase or decrease if there are
     // compatibility issues.
@@ -61,47 +63,90 @@ HRESULT CreateServiceUserAccount(__out PWSTR* ppszAccountPassword, __out size_t*
         goto cleanexit;
     }
 
-	if(NetUserGetInfo(NULL,YONTMA_SERVICE_ACCOUNT_NAME,1,(LPBYTE*)&pUserInfo1) == NERR_Success) {
-		pUserInfo1->usri1_flags = pUserInfo1->usri1_flags & (~UF_ACCOUNTDISABLE); //enable
-		pUserInfo1->usri1_password = pszAccountPasswordLocal; //set new password
-		dwResult = NetUserSetInfo(NULL,YONTMA_SERVICE_ACCOUNT_NAME,1,(LPBYTE)pUserInfo1,NULL);
-		NetApiBufferFree(pUserInfo1);
-		if(dwResult != NERR_Success) hr = E_FAIL;
-		hr = S_OK;
+    //
+    // Check if the yontma service account already exists from a previous
+    // install but is disabled.
+    //
+
+    hr = EnableServiceUserAccount(pszAccountPasswordLocal);
+    if(!HB_FAILED(hr)) {
+        
+        //
+        // Account already exists. We're done!
+        //
+
+		goto cleanexit;
 	}
 	else {
-		userInfo.usri1_password = pszAccountPasswordLocal;
+        hr = S_OK;
+    }
     
-		if(NetUserAdd(NULL,
-					  1,
-					  (LPBYTE)&userInfo,
-					  &badParameterIndex) != NERR_Success) {
-			hr = E_FAIL;
-			goto cleanexit;
-		}
+    //
+    // Account does not already exist. We must add a new one.
+    //
+
+	userInfo.usri1_password = pszAccountPasswordLocal;
     
-		hr = AdjustYontmaAccountPrivileges();
-		if(HB_FAILED(hr)) {
-			goto cleanexit;
-		}
-    
-		//
-		// We ignore failures on group removal, since this user will still be more
-		// lower-privileged than SYSTEM
-		//
-
-		RemoveServiceUserFromGroups();
-
-		*ppszAccountPassword = pszAccountPasswordLocal;
-		pszAccountPasswordLocal = NULL;
-
-		*cbAccountPassword = cbAccountPasswordLocal;
-
-		hr = S_OK;
+	if(NetUserAdd(NULL,
+					1,
+					(LPBYTE)&userInfo,
+					&badParameterIndex) != NERR_Success) {
+		hr = E_FAIL;
+		goto cleanexit;
 	}
+    
+	hr = AdjustYontmaAccountPrivileges();
+	if(HB_FAILED(hr)) {
+		goto cleanexit;
+	}
+    
+	//
+	// We ignore failures on group removal, since this user will still be more
+	// lower-privileged than SYSTEM
+	//
+
+	RemoveServiceUserFromGroups();
+
+	*ppszAccountPassword = pszAccountPasswordLocal;
+	pszAccountPasswordLocal = NULL;
+
+	*cbAccountPassword = cbAccountPasswordLocal;
+
+	hr = S_OK;
 
 cleanexit:
     HB_SECURE_FREE(pszAccountPasswordLocal, cbAccountPasswordLocal);
+
+    return hr;
+}
+
+HRESULT EnableServiceUserAccount(__in PWSTR pszNewPassword)
+{
+    HRESULT hr;
+	PUSER_INFO_1 pUserInfo;
+
+    if(NetUserGetInfo(NULL,
+                      YONTMA_SERVICE_ACCOUNT_NAME,
+                      1,
+                      (LPBYTE*)&pUserInfo) != NERR_Success) {
+        goto cleanexit;
+    }
+
+	pUserInfo->usri1_flags = pUserInfo->usri1_flags & (~UF_ACCOUNTDISABLE); //enable
+	pUserInfo->usri1_password = pszNewPassword; //set new password
+    if(NetUserSetInfo(NULL,
+                      YONTMA_SERVICE_ACCOUNT_NAME,
+                      1,
+                      (LPBYTE)pUserInfo,
+                      NULL) != NERR_Success) {
+        hr = E_FAIL;
+        goto cleanexit;
+    }
+	
+	hr = S_OK;
+
+cleanexit:
+    HB_SAFE_NETAPI_FREE(pUserInfo);
 
     return hr;
 }
