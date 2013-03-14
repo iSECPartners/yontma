@@ -70,7 +70,7 @@ HRESULT CreateServiceUserAccount(__out PWSTR* ppszAccountPassword, __out size_t*
 
     hr = GenerateRandomPassword(pszAccountPasswordLocal,cchPasswordLength);
     if(HB_FAILED(hr)) {
-        return FALSE;
+        goto cleanexit;
     }
 
     userInfo.usri1_password = pszAccountPasswordLocal;
