@@ -25,9 +25,8 @@ HRESULT PasswordFromBytes(__in PBYTE pBytes, __in size_t cbBytes, __out PWSTR ps
 HRESULT CreateServiceUserAccount(__out PWSTR* ppszAccountPassword, __out size_t* cbAccountPassword)
 {
     HRESULT hr;
-    BOOL bServiceUserExists;
     PWSTR pszAccountPasswordLocal = NULL;
-    DWORD badParameterIndex,dwResult;
+    DWORD badParameterIndex;
     USER_INFO_1 userInfo = {
       YONTMA_SERVICE_ACCOUNT_NAME,
       NULL,
@@ -154,7 +153,6 @@ cleanexit:
 
 HRESULT DisableServiceUserAccount(void)
 {
-    DWORD dwResult; 
     USER_INFO_1 *pUserInfo1;
     HRESULT hr;
 
