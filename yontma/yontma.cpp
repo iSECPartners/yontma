@@ -475,7 +475,7 @@ void WriteLineToLog(char *pStr)
                     OPEN_ALWAYS,
                     FILE_ATTRIBUTE_NORMAL,
                     NULL);
-    if(fh) {
+    if(fh != INVALID_HANDLE_VALUE) {
         WriteFile(fh,
                   pStr,
                   strlen(pStr),
