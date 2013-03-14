@@ -4,7 +4,6 @@
 #define YONTMA_SERVICE_ACCOUNT_COMMENT L"Service account for YoNTMA (You'll Never Take Me Alive!) service."
 #define STATUS_SUCCESS ((NTSTATUS)0x00000000L)
 
-//HRESULT CheckIfServiceUserExists(PBOOL pbUserExists);
 HRESULT AdjustYontmaAccountPrivileges(void);
 HRESULT RemoveServiceUserFromGroups(void);
 bool InitLsaString(PLSA_UNICODE_STRING pLsaString,LPCWSTR pwszString);
@@ -127,37 +126,6 @@ cleanexit:
 
     return hr;
 }
-
-/*HRESULT CheckIfServiceUserExists(PBOOL pbUserExists)
-{
-    HRESULT hr;
-    NET_API_STATUS nerr;
-    PUSER_INFO_0 pUserInfo = NULL;
-    BOOL bUserExistsLocal;
-
-    nerr = NetUserGetInfo(NULL,
-                          YONTMA_SERVICE_ACCOUNT_NAME,
-                          0,
-                          (LPBYTE*)&pUserInfo);
-    if(nerr == NERR_Success) {
-        bUserExistsLocal = TRUE;
-    }
-    else if(nerr == NERR_UserNotFound) {
-        bUserExistsLocal = FALSE;
-    }
-    else {
-        hr = E_FAIL;
-        goto cleanexit;
-    }
-
-    *pbUserExists = bUserExistsLocal;
-    hr = S_OK;
-
-cleanexit:
-    HB_SAFE_NETAPI_FREE(pUserInfo);
-
-    return hr;
-}*/
 
 HRESULT AdjustYontmaAccountPrivileges(void)
 {
