@@ -129,6 +129,7 @@ HRESULT EnableServiceUserAccount(__in PWSTR pszNewPassword)
                       YONTMA_SERVICE_ACCOUNT_NAME,
                       1,
                       (LPBYTE*)&pUserInfo) != NERR_Success) {
+        hr = E_FAIL;
         goto cleanexit;
     }
 
