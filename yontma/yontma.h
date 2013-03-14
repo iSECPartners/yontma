@@ -30,6 +30,7 @@ HRESULT InstallYontma(void);
 HRESULT RemoveYontma(void);
 
 void HibernateMachine(void);
+BOOL IsUserAdmin(void);
 
 //DEBUG
 

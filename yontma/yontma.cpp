@@ -74,6 +74,11 @@ HRESULT PerformInstall(void)
 {
     HRESULT hr;
 
+	if(!IsUserAdmin()) {
+		printf("Please run yontma as an administrator\n");
+		return E_FAIL;
+	}
+
 #ifdef NDEBUG
     hr = CheckYontmaRequirements();
     if(HB_FAILED(hr)) {
@@ -93,6 +98,11 @@ cleanexit:
 
 HRESULT PerformUninstall(void)
 {
+	if(!IsUserAdmin()) {
+		printf("Please run yontma as an administrator\n");
+		return E_FAIL;
+	}
+
     return RemoveYontma();
 }
 
@@ -309,7 +319,6 @@ HRESULT CheckYontmaRequirements()
     hr = IsOsVolumeProtectedByBitLocker(&bIsOsVolumeProtectedByBitLocker);
     if(HB_FAILED(hr)) {
         printf("Error checking BitLocker status. Error=0x%x\r\n", hr);
-        printf("Please make sure yontma was executed as administrator\r\n");
         goto cleanexit;
     }
     if(!bIsOsVolumeProtectedByBitLocker) {
@@ -412,8 +421,6 @@ HRESULT RemoveYontma(void)
 
     RemoveYontmaBinaryFromInstallLocation(szInstalledPath);
 
-    RemoveServiceUserAccount();
-
 cleanexit:
     HB_SAFE_FREE(pszServiceExecutionString);
 
@@ -423,6 +430,22 @@ cleanexit:
 void HibernateMachine(void)
 {
     SetSuspendState(TRUE, TRUE, TRUE);
+}
+
+BOOL IsUserAdmin(void)
+{
+	BOOL b;
+	SID_IDENTIFIER_AUTHORITY NtAuthority = SECURITY_NT_AUTHORITY;
+	PSID AdministratorsGroup;
+
+	b = AllocateAndInitializeSid(&NtAuthority,2,SECURITY_BUILTIN_DOMAIN_RID,DOMAIN_ALIAS_RID_ADMINS,0,0,0,0,0,0,&AdministratorsGroup);
+	if(b) {
+		if(!CheckTokenMembership(NULL,AdministratorsGroup,&b)) b = FALSE;
+		FreeSid(AdministratorsGroup); 
+	}
+
+
+	return b;
 }
 
 #ifdef _DEBUG
@@ -478,7 +501,7 @@ TEXT("yontma (You'll Never Take Me Alive!) is a service that helps protect a\r\n
 TEXT("laptop.\r\n")
 TEXT("If BitLocker is enabled, it will hibernate a locked laptop if power or wired\r\n")
 TEXT("ethernet is disconnected.\r\n")
-TEXT("(c)2013 andreas@isecpartners.com\r\n")
+TEXT("(c)2013 andreas at isecpartners.com and mlynch at isecpartners.com\r\n")
 TEXT("--------------------------------------------------------------------------------\r\n")
 TEXT("Usage:\r\n")
 TEXT("  yontma <option>\r\n")
