@@ -4,7 +4,7 @@
 #define YONTMA_SERVICE_ACCOUNT_COMMENT L"Service account for YoNTMA (You'll Never Take Me Alive!) service."
 #define STATUS_SUCCESS ((NTSTATUS)0x00000000L)
 
-HRESULT CheckIfServiceUserExists(PBOOL pbUserExists);
+//HRESULT CheckIfServiceUserExists(PBOOL pbUserExists);
 HRESULT AdjustYontmaAccountPrivileges(void);
 HRESULT RemoveServiceUserFromGroups(void);
 bool InitLsaString(PLSA_UNICODE_STRING pLsaString,LPCWSTR pwszString);
@@ -26,7 +26,8 @@ HRESULT CreateServiceUserAccount(__out PWSTR* ppszAccountPassword, __out size_t*
     HRESULT hr;
     BOOL bServiceUserExists;
     PWSTR pszAccountPasswordLocal = NULL;
-    DWORD badParameterIndex;
+    DWORD badParameterIndex,dwResult;
+	USER_INFO_1 *pUserInfo1;
     USER_INFO_1 userInfo = {
       YONTMA_SERVICE_ACCOUNT_NAME,
       NULL,
@@ -44,19 +45,7 @@ HRESULT CreateServiceUserAccount(__out PWSTR* ppszAccountPassword, __out size_t*
 
     const size_t cchPasswordLength = 40;
     size_t cbAccountPasswordLocal = 0;
-
-    hr = CheckIfServiceUserExists(&bServiceUserExists);
-    if(HB_FAILED(hr)) {
-        goto cleanexit;
-    }
-
-    if(bServiceUserExists) {
-        hr = RemoveServiceUserAccount();
-        if(HB_FAILED(hr)) {
-            goto cleanexit;
-        }
-    }
-
+	
     hr = SizeTMult(cchPasswordLength, sizeof(WCHAR), &cbAccountPasswordLocal);
     if(HB_FAILED(hr)) {
         goto cleanexit;
@@ -68,39 +57,49 @@ HRESULT CreateServiceUserAccount(__out PWSTR* ppszAccountPassword, __out size_t*
         goto cleanexit;
     }
 
-    hr = GenerateRandomPassword(pszAccountPasswordLocal,cchPasswordLength);
+	hr = GenerateRandomPassword(pszAccountPasswordLocal,cchPasswordLength);
     if(HB_FAILED(hr)) {
         goto cleanexit;
     }
 
-    userInfo.usri1_password = pszAccountPasswordLocal;
+	if(NetUserGetInfo(NULL,YONTMA_SERVICE_ACCOUNT_NAME,1,(LPBYTE*)&pUserInfo1) == NERR_Success) {
+		pUserInfo1->usri1_flags = pUserInfo1->usri1_flags & (~UF_ACCOUNTDISABLE); //enable
+		pUserInfo1->usri1_password = pszAccountPasswordLocal; //set new password
+		dwResult = NetUserSetInfo(NULL,YONTMA_SERVICE_ACCOUNT_NAME,1,(LPBYTE)pUserInfo1,NULL);
+		NetApiBufferFree(pUserInfo1);
+		if(dwResult != NERR_Success) hr = E_FAIL;
+		hr = S_OK;
+	}
+	else {
+		userInfo.usri1_password = pszAccountPasswordLocal;
     
-    if(NetUserAdd(NULL,
-                  1,
-                  (LPBYTE)&userInfo,
-                  &badParameterIndex) != NERR_Success) {
-        hr = E_FAIL;
-        goto cleanexit;
-    }
+		if(NetUserAdd(NULL,
+					  1,
+					  (LPBYTE)&userInfo,
+					  &badParameterIndex) != NERR_Success) {
+			hr = E_FAIL;
+			goto cleanexit;
+		}
     
-    hr = AdjustYontmaAccountPrivileges();
-    if(HB_FAILED(hr)) {
-        goto cleanexit;
-    }
+		hr = AdjustYontmaAccountPrivileges();
+		if(HB_FAILED(hr)) {
+			goto cleanexit;
+		}
     
-    //
-    // We ignore failures on group removal, since this user will still be more
-    // lower-privileged than SYSTEM
-    //
+		//
+		// We ignore failures on group removal, since this user will still be more
+		// lower-privileged than SYSTEM
+		//
 
-    RemoveServiceUserFromGroups();
+		RemoveServiceUserFromGroups();
 
-    *ppszAccountPassword = pszAccountPasswordLocal;
-    pszAccountPasswordLocal = NULL;
+		*ppszAccountPassword = pszAccountPasswordLocal;
+		pszAccountPasswordLocal = NULL;
 
-    *cbAccountPassword = cbAccountPasswordLocal;
+		*cbAccountPassword = cbAccountPasswordLocal;
 
-    hr = S_OK;
+		hr = S_OK;
+	}
 
 cleanexit:
     HB_SECURE_FREE(pszAccountPasswordLocal, cbAccountPasswordLocal);
@@ -108,14 +107,19 @@ cleanexit:
     return hr;
 }
 
-HRESULT RemoveServiceUserAccount(void)
+HRESULT DisableServiceUserAccount(void)
 {
-    HRESULT hr;
+	DWORD dwResult; 
+	USER_INFO_1 *pUserInfo1;
+	HRESULT hr;
 
-    if(NetUserDel(NULL, YONTMA_SERVICE_ACCOUNT_NAME) != NERR_Success) {
+	if(NetUserGetInfo(NULL,YONTMA_SERVICE_ACCOUNT_NAME,1,(LPBYTE*)&pUserInfo1) != NERR_Success) {
         hr = E_FAIL;
         goto cleanexit;
     }
+	
+	if(NetUserSetInfo(NULL,YONTMA_SERVICE_ACCOUNT_NAME,1,(LPBYTE)pUserInfo1,NULL) != NERR_Success) hr = E_FAIL;
+	NetApiBufferFree(pUserInfo1);
 
     hr = S_OK;
 
@@ -124,7 +128,7 @@ cleanexit:
     return hr;
 }
 
-HRESULT CheckIfServiceUserExists(PBOOL pbUserExists)
+/*HRESULT CheckIfServiceUserExists(PBOOL pbUserExists)
 {
     HRESULT hr;
     NET_API_STATUS nerr;
@@ -153,7 +157,7 @@ cleanexit:
     HB_SAFE_NETAPI_FREE(pUserInfo);
 
     return hr;
-}
+}*/
 
 HRESULT AdjustYontmaAccountPrivileges(void)
 {
