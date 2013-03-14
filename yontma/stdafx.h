@@ -5,6 +5,12 @@
 
 #pragma once
 
+//
+// Suppress compiler warnings about functions that weren't inlined.
+//
+
+#pragma warning (disable : 4710 )
+
 #include "targetver.h"
 
 #ifndef WIN32_LEAN_AND_MEAN
