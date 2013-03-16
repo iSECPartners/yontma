@@ -403,26 +403,41 @@ cleanexit:
 HRESULT RemoveYontma(void)
 {
     HRESULT hr;
-    PTSTR pszServiceExecutionString = NULL;
     TCHAR szInstalledPath[MAX_PATH] = {0};
     
     hr = GetServiceInstalledPath(szInstalledPath,
                                  ARRAYSIZE(szInstalledPath));
     if(HB_FAILED(hr)) {
-        goto cleanexit;
+        _tprintf(TEXT("Failed to remove YoNTMA files. Could not determine install location. Error 0x%x\r\n"), hr);
+        szInstalledPath[0] = '\0';
+        hr = S_OK;
     }
+
+    //
+    // Failing to delete the service is a fatal error and we should abort here.
+    //
 
     hr = DeleteYontmaService();
     if(HB_FAILED(hr)) {
+        _tprintf(TEXT("Failed to remove YoNTMA service. Error 0x%x"), hr);
         goto cleanexit;
     }
 
-    RemoveYontmaBinaryFromInstallLocation(szInstalledPath);
+    if(szInstalledPath[0] != '\0') {
+        hr = RemoveYontmaBinaryFromInstallLocation(szInstalledPath);
+        if (HB_FAILED(hr)) {
+            _tprintf(TEXT("Failed to remove YoNTMA files from [%s]. Error 0x%x\r\n"), szInstalledPath, hr);
+            hr = S_OK;
+        }
+    }
 
-    RemoveServiceUserAccount();
+    hr = RemoveServiceUserAccount();
+    if(HB_FAILED(hr)) {
+        _tprintf(TEXT("Failed to remove YoNTMA service limited user account. Error 0x%x\r\n"), hr);
+        hr = S_OK;
+    }
 
 cleanexit:
-    HB_SAFE_FREE(pszServiceExecutionString);
 
     return hr;
 }

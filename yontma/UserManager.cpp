@@ -113,15 +113,21 @@ cleanexit:
 HRESULT RemoveServiceUserAccount(void)
 {
     HRESULT hr;
+    HRESULT hrDeleteProfile;
 
-    DeleteServiceUserProfile();
+    //
+    // If we fail to delete the profile, we should delete the user, but save
+    // the error.
+    //
+
+    hrDeleteProfile = DeleteServiceUserProfile();
 
     if(NetUserDel(NULL, YONTMA_SERVICE_ACCOUNT_NAME) != NERR_Success) {
         hr = E_FAIL;
         goto cleanexit;
     }
 
-    hr = S_OK;
+    hr = hrDeleteProfile;
 
 cleanexit:
 
@@ -159,6 +165,8 @@ HRESULT DeleteServiceUserProfile(void)
         hr = HRESULT_FROM_WIN32(GetLastError());
         goto cleanexit;
     }
+
+    hr = S_OK;
 
 cleanexit:
     HB_SAFE_LOCAL_FREE(pszSidString);

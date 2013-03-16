@@ -124,15 +124,13 @@ cleanexit:
 // Parameters:
 //  pszInstalledPath - Full path to where the YoNTMA binary was installed.
 //
-void RemoveYontmaBinaryFromInstallLocation(__in PTSTR pszInstalledPath)
+HRESULT RemoveYontmaBinaryFromInstallLocation(__in PTSTR pszInstalledPath)
 {
     HRESULT hr;
     TCHAR szInstalledDirectory[MAX_PATH] = {0};
 
     if(!DeleteFile(pszInstalledPath)) {
         hr = HRESULT_FROM_WIN32(GetLastError());
-        _tprintf(TEXT("Failed to delete file: %s\r\n"), pszInstalledPath);
-        _tprintf(TEXT("Error: 0x%x\r\n"), hr);
         goto cleanexit;
     }
 
@@ -148,10 +146,13 @@ void RemoveYontmaBinaryFromInstallLocation(__in PTSTR pszInstalledPath)
     // This call will fail if the directory is non-empty.
     //
 
-    RemoveDirectory(szInstalledDirectory);
+    if(!RemoveDirectory(szInstalledDirectory)) {
+        hr = HRESULT_FROM_WIN32(GetLastError());
+        goto cleanexit;
+    }
 
 cleanexit:
-    ;
+    return hr;
 }
 
 HRESULT GetPathParentDirectory(__in PTSTR pszPath, __out PTSTR pszParentDirectory, __in size_t cchParentDirectory)
