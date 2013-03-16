@@ -9,6 +9,8 @@ HRESULT RemoveServiceUserFromGroups(void);
 HRESULT DeleteServiceUserProfile(void);
 HRESULT CheckIfServiceUserExists(PBOOL pbUserExists);
 bool InitLsaString(PLSA_UNICODE_STRING pLsaString,LPCWSTR pwszString);
+HRESULT AddPrivilegeToAccount(__in LSA_HANDLE lsahPolicyHandle,__in PSID pSid, __in PTSTR pszPrivilegeName);
+HRESULT RemovePrivilegeFromAccount(__in LSA_HANDLE lsahPolicyHandle,__in PSID pSid, __in PTSTR pszPrivilegeName);
 HRESULT GetAccountSid(__in PCWSTR pszAccountName, __out PSID* ppSid);
 HRESULT GenerateRandomPassword(__out PWSTR pszPassword, __in size_t cchPassword);
 HRESULT PasswordFromBytes(__in PBYTE pBytes, __in size_t cbBytes, __out PWSTR pszPassword, __in size_t cbPassword);
@@ -203,7 +205,6 @@ HRESULT AdjustYontmaAccountPrivileges(void)
     NTSTATUS ntReturn;
     LSA_OBJECT_ATTRIBUTES ObjectAttributes = {0};
     LSA_HANDLE lsahPolicyHandle = NULL;
-    LSA_UNICODE_STRING lucStr;
     
     hr = GetAccountSid(YONTMA_SERVICE_ACCOUNT_NAME, &pSid);
     if(HB_FAILED(hr)) {
@@ -219,29 +220,18 @@ HRESULT AdjustYontmaAccountPrivileges(void)
         goto cleanexit;
     }
 
-    if(!InitLsaString(&lucStr,SE_SERVICE_LOGON_NAME)) {
-        hr = E_FAIL;
-        goto cleanexit;
-    }
-
-    ntReturn = LsaAddAccountRights(lsahPolicyHandle,pSid,&lucStr,1);
-    if(ntReturn != STATUS_SUCCESS) {
-        hr = HRESULT_FROM_WIN32(LsaNtStatusToWinError(ntReturn));
+    hr = AddPrivilegeToAccount(lsahPolicyHandle, pSid, SE_SERVICE_LOGON_NAME);
+    if(HB_FAILED(hr)) {
         goto cleanexit;
     }
 
     //
     // When we remove privileges, we don't care if we fail.
     //
-
-    InitLsaString(&lucStr,SE_BATCH_LOGON_NAME);
-    LsaRemoveAccountRights(lsahPolicyHandle,pSid,FALSE,&lucStr,1);
-    InitLsaString(&lucStr,SE_INTERACTIVE_LOGON_NAME);
-    LsaRemoveAccountRights(lsahPolicyHandle,pSid,FALSE,&lucStr,1);
-    InitLsaString(&lucStr,SE_NETWORK_LOGON_NAME);
-    LsaRemoveAccountRights(lsahPolicyHandle,pSid,FALSE,&lucStr,1);
-    InitLsaString(&lucStr,SE_REMOTE_INTERACTIVE_LOGON_NAME);
-    LsaRemoveAccountRights(lsahPolicyHandle,pSid,FALSE,&lucStr,1);
+    RemovePrivilegeFromAccount(lsahPolicyHandle, pSid, SE_BATCH_LOGON_NAME);
+    RemovePrivilegeFromAccount(lsahPolicyHandle, pSid, SE_INTERACTIVE_LOGON_NAME);
+    RemovePrivilegeFromAccount(lsahPolicyHandle, pSid, SE_NETWORK_LOGON_NAME);
+    RemovePrivilegeFromAccount(lsahPolicyHandle, pSid, SE_REMOTE_INTERACTIVE_LOGON_NAME);
 
     hr = S_OK;
 
@@ -309,6 +299,54 @@ bool InitLsaString(PLSA_UNICODE_STRING pLsaString,LPCWSTR pwszString)
     pLsaString->MaximumLength= (USHORT)(dwLen+1) * sizeof(WCHAR);
 
     return TRUE;
+}
+
+HRESULT AddPrivilegeToAccount(__in LSA_HANDLE lsahPolicyHandle,__in PSID pSid, __in PTSTR pszPrivilegeName)
+{
+    HRESULT hr;
+    LSA_UNICODE_STRING lucStr;
+    NTSTATUS ntReturn;
+
+    if(!InitLsaString(&lucStr, pszPrivilegeName)) {
+        hr = E_FAIL;
+        goto cleanexit;
+    }
+
+    ntReturn = LsaAddAccountRights(lsahPolicyHandle, pSid, &lucStr, 1);
+    if(ntReturn != STATUS_SUCCESS) {
+        hr = HRESULT_FROM_WIN32(LsaNtStatusToWinError(ntReturn));
+        goto cleanexit;
+    }
+
+    hr = S_OK;
+
+cleanexit:
+
+    return hr;
+}
+
+HRESULT RemovePrivilegeFromAccount(__in LSA_HANDLE lsahPolicyHandle,__in PSID pSid, __in PTSTR pszPrivilegeName)
+{
+    HRESULT hr;
+    LSA_UNICODE_STRING lucStr;
+    NTSTATUS ntReturn;
+
+    if(!InitLsaString(&lucStr, pszPrivilegeName)) {
+        hr = E_FAIL;
+        goto cleanexit;
+    }
+
+    ntReturn = LsaRemoveAccountRights(lsahPolicyHandle, pSid, FALSE, &lucStr, 1);
+    if(ntReturn != STATUS_SUCCESS) {
+        hr = HRESULT_FROM_WIN32(LsaNtStatusToWinError(ntReturn));
+        goto cleanexit;
+    }
+
+    hr = S_OK;
+
+cleanexit:
+
+    return hr;
 }
 
 //
