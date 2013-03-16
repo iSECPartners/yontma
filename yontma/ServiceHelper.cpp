@@ -191,7 +191,7 @@ HRESULT ChangeYontmaServiceStatus(DWORD dwServiceStatus, LPVOID lpContext)
                                         lpContext);
     status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
     status.dwCurrentState = dwServiceStatus;
-    status.dwControlsAccepted = SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN | SERVICE_ACCEPT_SESSIONCHANGE | SERVICE_CONTROL_POWEREVENT;
+    status.dwControlsAccepted = SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN | SERVICE_ACCEPT_SESSIONCHANGE | SERVICE_ACCEPT_POWEREVENT;
     status.dwWin32ExitCode = 0;
     status.dwServiceSpecificExitCode = 0;
     status.dwCheckPoint = 0;

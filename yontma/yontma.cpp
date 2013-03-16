@@ -182,7 +182,10 @@ void __stdcall ServiceMain(int argc, TCHAR* argv[])
     WriteLineToLog("ServiceMain: Going into main loop");
 
     //make sure to tell the Callback that the screen is locked if we came out of a OS boot
-    if(bNeverLoggedIn) ServiceHandlerEx(SERVICE_CONTROL_SESSIONCHANGE,WTS_SESSION_LOCK,NULL,&serviceHandlerParams);
+    if(bNeverLoggedIn) ServiceHandlerEx(SERVICE_CONTROL_SESSIONCHANGE,
+                                        WTS_SESSION_LOCK,
+                                        NULL,
+                                        &serviceHandlerParams);
 
     while(!bExitService) {
         switch(WaitForMultipleObjects(TotalEvents,
@@ -230,11 +233,18 @@ DWORD WINAPI ServiceHandlerEx(DWORD dwControl,
 
     if(dwControl == SERVICE_CONTROL_INTERROGATE) return NO_ERROR;
     else if(dwControl == SERVICE_CONTROL_SESSIONCHANGE) {
-        //if(!lpEventData) return NO_ERROR;
-
         switch (dwEventType) {
         case WTS_SESSION_LOCK:
         case WTS_SESSION_LOGOFF:
+
+            //
+            // Ignore locks/logoffs if machine is in suspend/hibernate state.
+            //
+
+            if(pServiceHandlerParams->bMachineSuspended) {
+                break;
+            }
+
             ResetEvent(pServiceHandlerParams->hMonitorStopEvent);
 
             pACThreadParams = (PMONITOR_THREAD_PARAMS)malloc(sizeof(MONITOR_THREAD_PARAMS));
@@ -273,6 +283,14 @@ DWORD WINAPI ServiceHandlerEx(DWORD dwControl,
         return NO_ERROR;
     }
     else if(dwControl == SERVICE_CONTROL_POWEREVENT) {
+        if(dwEventType == PBT_APMSUSPEND) {
+            WriteLineToLog("ServiceHandlerEx: Going into suspended state");
+            pServiceHandlerParams->bMachineSuspended = TRUE;
+        }
+        else if(dwEventType == PBT_APMRESUMESUSPEND) {
+            WriteLineToLog("ServiceHandlerEx: Resuming from suspended state");
+            pServiceHandlerParams->bMachineSuspended = FALSE;
+        }
         return NO_ERROR;
     }
     else if((dwControl == SERVICE_CONTROL_STOP) || (dwControl == SERVICE_CONTROL_SHUTDOWN)) {
