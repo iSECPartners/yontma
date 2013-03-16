@@ -50,3 +50,5 @@
 #define HB_SAFE_LOCAL_FREE(__x) { if((__x)) { LocalFree((__x)); (__x) = NULL; } }
 #define HB_SAFE_NETAPI_FREE(__x) { if((__x)) { NetApiBufferFree((__x)); (__x) = NULL; } }
 #define HB_SECURE_FREE(__x, __size) { if((__x)) { SecureZeroMemory(__x, __size); free((__x)); (__x) = NULL; } }
+
+#define DO_NOT_REALLY_HIBERNATE 1

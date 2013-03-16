@@ -87,7 +87,7 @@ DWORD WINAPI WiredEthernetMonitorThread(LPVOID lpParams)
                 if((pCurrNewAddress->OperStatus == IfOperStatusDown) && (pCurrOriginalAddress->OperStatus == IfOperStatusUp)) {
                     WriteLineToLog("WiredEtherMonitorThread: Firing monitor event");
                     SetEvent(pMonitorThreadParams->hMonitorEvent);
-                    break;
+                    goto cleanexit;
                 }
                 else {
                     ResetEvent(pMonitorThreadParams->hMonitorEvent);

@@ -24,6 +24,7 @@ DWORD WINAPI PowerMonitorThread(LPVOID lpParams)
         if(!PowerStatus.ACLineStatus) {
             WriteLineToLog("PowerMonitorThread: Firing monitor event");
             SetEvent(pMonitorThreadParams->hMonitorEvent);
+            goto cleanexit;
         }
         else {
             ResetEvent(pMonitorThreadParams->hMonitorEvent);
