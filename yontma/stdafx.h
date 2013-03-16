@@ -29,6 +29,8 @@
 #include <Wbemidl.h>
 #include <lm.h>
 #include <Ntsecapi.h>
+#include <sddl.h>
+#include <UserEnv.h>
 #include <strsafe.h>
 #include <intsafe.h>
 

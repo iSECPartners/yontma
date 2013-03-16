@@ -5,8 +5,9 @@
 #define STATUS_SUCCESS ((NTSTATUS)0x00000000L)
 
 HRESULT AdjustYontmaAccountPrivileges(void);
-HRESULT EnableServiceUserAccount(__in PWSTR pszNewPassword);
 HRESULT RemoveServiceUserFromGroups(void);
+HRESULT DeleteServiceUserProfile(void);
+HRESULT CheckIfServiceUserExists(PBOOL pbUserExists);
 bool InitLsaString(PLSA_UNICODE_STRING pLsaString,LPCWSTR pwszString);
 HRESULT GenerateRandomPassword(__out PWSTR pszPassword, __in size_t cchPassword);
 HRESULT PasswordFromBytes(__in PBYTE pBytes, __in size_t cbBytes, __out PWSTR pszPassword, __in size_t cbPassword);
@@ -25,6 +26,7 @@ HRESULT PasswordFromBytes(__in PBYTE pBytes, __in size_t cbBytes, __out PWSTR ps
 HRESULT CreateServiceUserAccount(__out PWSTR* ppszAccountPassword, __out size_t* cbAccountPassword)
 {
     HRESULT hr;
+    BOOL bServiceUserExists;
     PWSTR pszAccountPasswordLocal = NULL;
     DWORD badParameterIndex;
     USER_INFO_1 userInfo = {
@@ -37,7 +39,6 @@ HRESULT CreateServiceUserAccount(__out PWSTR* ppszAccountPassword, __out size_t*
       UF_DONT_EXPIRE_PASSWD,
       NULL
     };
-
     //
     // This value is chosen arbitrarily as a long password. Could increase or decrease if there are
     // compatibility issues.
@@ -45,7 +46,19 @@ HRESULT CreateServiceUserAccount(__out PWSTR* ppszAccountPassword, __out size_t*
 
     const size_t cchPasswordLength = 40;
     size_t cbAccountPasswordLocal = 0;
-    
+
+    hr = CheckIfServiceUserExists(&bServiceUserExists);
+    if(HB_FAILED(hr)) {
+        goto cleanexit;
+    }
+
+    if(bServiceUserExists) {
+        hr = RemoveServiceUserAccount();
+        if(HB_FAILED(hr)) {
+            goto cleanexit;
+        }
+    }
+
     hr = SizeTMult(cchPasswordLength, sizeof(WCHAR), &cbAccountPasswordLocal);
     if(HB_FAILED(hr)) {
         goto cleanexit;
@@ -62,34 +75,12 @@ HRESULT CreateServiceUserAccount(__out PWSTR* ppszAccountPassword, __out size_t*
         goto cleanexit;
     }
 
-    //
-    // Check if the yontma service account already exists from a previous
-    // install but is disabled.
-    //
-
-    hr = EnableServiceUserAccount(pszAccountPasswordLocal);
-    if(!HB_FAILED(hr)) {
-        
-        //
-        // Account already exists. We're done!
-        //
-
-        goto cleanexit;
-    }
-    else {
-        hr = S_OK;
-    }
-    
-    //
-    // Account does not already exist. We must add a new one.
-    //
-
     userInfo.usri1_password = pszAccountPasswordLocal;
     
     if(NetUserAdd(NULL,
-                    1,
-                    (LPBYTE)&userInfo,
-                    &badParameterIndex) != NERR_Success) {
+                  1,
+                  (LPBYTE)&userInfo,
+                  &badParameterIndex) != NERR_Success) {
         hr = E_FAIL;
         goto cleanexit;
     }
@@ -119,54 +110,89 @@ cleanexit:
     return hr;
 }
 
-HRESULT EnableServiceUserAccount(__in PWSTR pszNewPassword)
+HRESULT RemoveServiceUserAccount(void)
 {
     HRESULT hr;
-    PUSER_INFO_1 pUserInfo;
 
-    if(NetUserGetInfo(NULL,
-                      YONTMA_SERVICE_ACCOUNT_NAME,
-                      1,
-                      (LPBYTE*)&pUserInfo) != NERR_Success) {
+    DeleteServiceUserProfile();
+
+    if(NetUserDel(NULL, YONTMA_SERVICE_ACCOUNT_NAME) != NERR_Success) {
         hr = E_FAIL;
         goto cleanexit;
     }
 
-    pUserInfo->usri1_flags = pUserInfo->usri1_flags & (~UF_ACCOUNTDISABLE); //enable
-    pUserInfo->usri1_password = pszNewPassword; //set new password
-    if(NetUserSetInfo(NULL,
-                      YONTMA_SERVICE_ACCOUNT_NAME,
-                      1,
-                      (LPBYTE)pUserInfo,
-                      NULL) != NERR_Success) {
-        hr = E_FAIL;
-        goto cleanexit;
-    }
-    
     hr = S_OK;
 
 cleanexit:
-    HB_SAFE_NETAPI_FREE(pUserInfo);
 
     return hr;
 }
 
-HRESULT DisableServiceUserAccount(void)
+HRESULT DeleteServiceUserProfile(void)
 {
-    USER_INFO_1 *pUserInfo1;
     HRESULT hr;
+    PBYTE SidBuffer[128];
+    PSID pSid = (PSID)SidBuffer;
+    DWORD dwSid = sizeof(SidBuffer);
+    WCHAR wcRefDomain[128];
+    DWORD dwRefDomain = sizeof(wcRefDomain) / sizeof(WCHAR);
+    SID_NAME_USE SidNameUse;
+    PWSTR pszSidString = NULL;
+    
+    if(!LookupAccountName(NULL,
+                          YONTMA_SERVICE_ACCOUNT_NAME,
+                          &SidBuffer,
+                          &dwSid,
+                          wcRefDomain,
+                          &dwRefDomain,
+                          &SidNameUse)) {
+        hr = HRESULT_FROM_WIN32(GetLastError());
+        goto cleanexit;
+    }
 
-    if(NetUserGetInfo(NULL,YONTMA_SERVICE_ACCOUNT_NAME,1,(LPBYTE*)&pUserInfo1) != NERR_Success) {
+    if(!ConvertSidToStringSid(pSid,&pszSidString)) {
+        hr = HRESULT_FROM_WIN32(GetLastError());
+        goto cleanexit;
+    }
+
+    if(!DeleteProfile(pszSidString, NULL, NULL)) {
+        hr = HRESULT_FROM_WIN32(GetLastError());
+        goto cleanexit;
+    }
+
+cleanexit:
+    HB_SAFE_LOCAL_FREE(pszSidString);
+
+    return hr;
+}
+
+HRESULT CheckIfServiceUserExists(PBOOL pbUserExists)
+{
+    HRESULT hr;
+    NET_API_STATUS nerr;
+    PUSER_INFO_0 pUserInfo = NULL;
+    BOOL bUserExistsLocal;
+
+    nerr = NetUserGetInfo(NULL,
+                          YONTMA_SERVICE_ACCOUNT_NAME,
+                          0,
+                          (LPBYTE*)&pUserInfo);
+    if(nerr == NERR_Success) {
+        bUserExistsLocal = TRUE;
+    }
+    else if(nerr == NERR_UserNotFound) {
+        bUserExistsLocal = FALSE;
+    }
+    else {
         hr = E_FAIL;
         goto cleanexit;
     }
-    
-    if(NetUserSetInfo(NULL,YONTMA_SERVICE_ACCOUNT_NAME,1,(LPBYTE)pUserInfo1,NULL) != NERR_Success) hr = E_FAIL;
-    NetApiBufferFree(pUserInfo1);
 
+    *pbUserExists = bUserExistsLocal;
     hr = S_OK;
 
 cleanexit:
+    HB_SAFE_NETAPI_FREE(pUserInfo);
 
     return hr;
 }
