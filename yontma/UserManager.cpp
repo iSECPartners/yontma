@@ -9,6 +9,7 @@ HRESULT RemoveServiceUserFromGroups(void);
 HRESULT DeleteServiceUserProfile(void);
 HRESULT CheckIfServiceUserExists(PBOOL pbUserExists);
 bool InitLsaString(PLSA_UNICODE_STRING pLsaString,LPCWSTR pwszString);
+HRESULT GetAccountSid(__in PCWSTR pszAccountName, __out PSID* ppSid);
 HRESULT GenerateRandomPassword(__out PWSTR pszPassword, __in size_t cchPassword);
 HRESULT PasswordFromBytes(__in PBYTE pBytes, __in size_t cbBytes, __out PWSTR pszPassword, __in size_t cbPassword);
 
@@ -137,22 +138,11 @@ cleanexit:
 HRESULT DeleteServiceUserProfile(void)
 {
     HRESULT hr;
-    PBYTE SidBuffer[128];
-    PSID pSid = (PSID)SidBuffer;
-    DWORD dwSid = sizeof(SidBuffer);
-    WCHAR wcRefDomain[128];
-    DWORD dwRefDomain = sizeof(wcRefDomain) / sizeof(WCHAR);
-    SID_NAME_USE SidNameUse;
+    PSID pSid;
     PWSTR pszSidString = NULL;
-    
-    if(!LookupAccountName(NULL,
-                          YONTMA_SERVICE_ACCOUNT_NAME,
-                          &SidBuffer,
-                          &dwSid,
-                          wcRefDomain,
-                          &dwRefDomain,
-                          &SidNameUse)) {
-        hr = HRESULT_FROM_WIN32(GetLastError());
+
+    hr = GetAccountSid(YONTMA_SERVICE_ACCOUNT_NAME, &pSid);
+    if(HB_FAILED(hr)) {
         goto cleanexit;
     }
 
@@ -169,6 +159,7 @@ HRESULT DeleteServiceUserProfile(void)
     hr = S_OK;
 
 cleanexit:
+    HB_SAFE_FREE(pSid);
     HB_SAFE_LOCAL_FREE(pszSidString);
 
     return hr;
@@ -208,25 +199,14 @@ cleanexit:
 HRESULT AdjustYontmaAccountPrivileges(void)
 {
     HRESULT hr;
+    PSID pSid = NULL;
     NTSTATUS ntReturn;
-    PBYTE SidBuffer[128];
-    PSID pSid = (PSID)SidBuffer;
-    DWORD dwSid = sizeof(SidBuffer);
-    WCHAR wcRefDomain[128];
-    DWORD dwRefDomain = sizeof(wcRefDomain) / sizeof(WCHAR);
-    SID_NAME_USE SidNameUse;
     LSA_OBJECT_ATTRIBUTES ObjectAttributes = {0};
     LSA_HANDLE lsahPolicyHandle = NULL;
     LSA_UNICODE_STRING lucStr;
     
-    if(!LookupAccountName(NULL,
-                          YONTMA_SERVICE_ACCOUNT_NAME,
-                          &SidBuffer,
-                          &dwSid,
-                          wcRefDomain,
-                          &dwRefDomain,
-                          &SidNameUse)) {
-        hr = HRESULT_FROM_WIN32(GetLastError());
+    hr = GetAccountSid(YONTMA_SERVICE_ACCOUNT_NAME, &pSid);
+    if(HB_FAILED(hr)) {
         goto cleanexit;
     }
 
@@ -266,6 +246,7 @@ HRESULT AdjustYontmaAccountPrivileges(void)
     hr = S_OK;
 
 cleanexit:
+    HB_SAFE_FREE(pSid);
     LsaClose(lsahPolicyHandle);
 
     return hr;
@@ -328,6 +309,88 @@ bool InitLsaString(PLSA_UNICODE_STRING pLsaString,LPCWSTR pwszString)
     pLsaString->MaximumLength= (USHORT)(dwLen+1) * sizeof(WCHAR);
 
     return TRUE;
+}
+
+//
+// Description:
+//  Retrieves the SID of the specified account.
+//
+// Parameters:
+//  pszAccountName - The name of the account for which to retrieve the SID.
+//
+//  ppSid - On success, is set to the SID of the specified account name. Caller
+//      must free with HB_SAFE_FREE.
+//
+HRESULT GetAccountSid(__in PCWSTR pszAccountName, __out PSID* ppSid)
+{
+    HRESULT hr;
+    DWORD dwErr;
+    PSID pSidLocal = NULL;
+    DWORD cbSidLocal = 0;
+    PWSTR pszReferencedDomain = NULL;
+    DWORD cchReferencedDomain = 0;
+    DWORD cbReferencedDomain;
+    SID_NAME_USE SidNameUse;
+    
+    //
+    // If we succeed with a zero-length buffer, something is wrong.
+    //
+
+    if(LookupAccountName(NULL,
+                         pszAccountName,
+                         &pSidLocal,
+                         &cbSidLocal,
+                         pszReferencedDomain,
+                         &cchReferencedDomain,
+                         &SidNameUse)) {
+        hr = E_UNEXPECTED;
+        goto cleanexit;
+    }
+
+    dwErr = GetLastError();
+    if(dwErr != ERROR_INSUFFICIENT_BUFFER) {
+        hr = HRESULT_FROM_WIN32(dwErr);
+        goto cleanexit;
+    }
+
+    pSidLocal = (PSID)malloc(cbSidLocal);
+    if(!pSidLocal) {
+        hr = E_OUTOFMEMORY;
+        goto cleanexit;
+    }
+
+    hr = DWordMult(cchReferencedDomain, sizeof(WCHAR), &cbReferencedDomain);
+    if(HB_FAILED(hr)) {
+        goto cleanexit;
+    }
+
+    pszReferencedDomain = (PWSTR)malloc(cbReferencedDomain);
+    if(!pszReferencedDomain) {
+        hr = E_OUTOFMEMORY;
+        goto cleanexit;
+    }
+
+    if(!LookupAccountName(NULL,
+                          pszAccountName,
+                          pSidLocal,
+                          &cbSidLocal,
+                          pszReferencedDomain,
+                          &cchReferencedDomain,
+                          &SidNameUse)) {
+        hr = HRESULT_FROM_WIN32(GetLastError());
+        goto cleanexit;
+    }
+
+    *ppSid = pSidLocal;
+    pSidLocal = NULL;
+
+    hr = S_OK;
+
+cleanexit:
+    HB_SAFE_FREE(pSidLocal);
+    HB_SAFE_FREE(pszReferencedDomain);
+
+    return hr;
 }
 
 HRESULT GenerateRandomPassword(__out PWSTR pszPassword, __in size_t cchPassword)
