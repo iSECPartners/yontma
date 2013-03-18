@@ -7,10 +7,16 @@ HRESULT GetInstallDirectory(__out TCHAR* pszInstallDirectory, __in size_t cchIns
 {
     HRESULT hr;
     const TCHAR szYontmaInstallDirectory[] = TEXT("%PROGRAMFILES%\\yontma");
+    DWORD dwcchInstallDirectory;
+
+    hr = SizeTToDWord(cchInstallDirectory, &dwcchInstallDirectory);
+    if(HB_FAILED(hr)) {
+        goto cleanexit;
+    }
 
     if(!ExpandEnvironmentStrings(szYontmaInstallDirectory,
                                  pszInstallDirectory,
-                                 cchInstallDirectory)) {
+                                 dwcchInstallDirectory)) {
         hr = HRESULT_FROM_WIN32(GetLastError());
         goto cleanexit;
     }

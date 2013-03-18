@@ -11,6 +11,12 @@
 
 #pragma warning (disable : 4710 )
 
+//
+// Suppress compiler warnings about added padding after data members
+//
+
+#pragma warning (disable : 4820 )
+
 #include "targetver.h"
 
 #ifndef WIN32_LEAN_AND_MEAN

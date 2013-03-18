@@ -282,21 +282,25 @@ cleanexit:
     return hr;
 }
 
-bool InitLsaString(PLSA_UNICODE_STRING pLsaString,LPCWSTR pwszString)
+bool InitLsaString(PLSA_UNICODE_STRING pLsaString, LPCWSTR pszString)
 {
-    DWORD dwLen = 0;
+    size_t cchString = 0;
 
-    if (NULL == pLsaString) return FALSE;
+    if(NULL == pLsaString) {
+        return FALSE;
+    }
 
-    if (NULL != pwszString) {
-        dwLen = wcslen(pwszString);
-        if (dwLen > 0x7ffe) return FALSE;
+    if(NULL != pszString) {
+        cchString = wcslen(pszString);
+        if(cchString > 0x7ffe) {
+            return FALSE;
+        }
     }
 
     // Store the string.
-    pLsaString->Buffer = (WCHAR *)pwszString;
-    pLsaString->Length =  (USHORT)dwLen * sizeof(WCHAR);
-    pLsaString->MaximumLength= (USHORT)(dwLen+1) * sizeof(WCHAR);
+    pLsaString->Buffer = (WCHAR*)pszString;
+    pLsaString->Length =  (USHORT)cchString * sizeof(WCHAR);
+    pLsaString->MaximumLength= (USHORT)(cchString + 1) * sizeof(WCHAR);
 
     return TRUE;
 }
@@ -435,7 +439,7 @@ HRESULT GenerateRandomPassword(__out PWSTR pszPassword, __in size_t cchPassword)
 {
     HRESULT hr;
     HCRYPTPROV hCryptProvider = NULL;
-    size_t cbRandomBuffer = 0;
+    DWORD cbRandomBuffer = 0;
     PBYTE pbRandomBuffer = NULL;
     size_t cbPassword;
     
@@ -453,7 +457,12 @@ HRESULT GenerateRandomPassword(__out PWSTR pszPassword, __in size_t cchPassword)
     // password minus one, as the last character is NULL.
     //
 
-    hr = SizeTSub(cchPassword, 1, &cbRandomBuffer);
+    hr = SizeTToDWord(cchPassword, &cbRandomBuffer);
+    if(HB_FAILED(hr)) {
+        goto cleanexit;
+    }
+
+    hr = DWordSub(cbRandomBuffer, 1, &cbRandomBuffer);
     if(HB_FAILED(hr)) {
         goto cleanexit;
     }
