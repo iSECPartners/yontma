@@ -41,6 +41,7 @@
 #include "Installer.h"
 #include "PowerMonitor.h"
 #include "WiredEthernetMonitor.h"
+#include "YontmaService.h"
 #include "yontma.h"
 
 #define HB_FAILED(__x) ((__x) != S_OK)
