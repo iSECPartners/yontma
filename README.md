@@ -13,8 +13,8 @@ Binaries
 
 YoNTMA is available for Windows in both x86 and x64 flavors.
 
-* [YoNTMA (Windows x86)](https://s3.amazonaws.com/yontma/v1.0/x86/yontma.exe) (MD5: e2289358ec932ac40557f0456ab646fd / SHA1: 7a701ad3ab295404b6715264711de15171f84aa5)
-* [YoNTMA (Windows x64)](https://s3.amazonaws.com/yontma/v1.0/x64/yontma.exe) (MD5: 59a16dacebe638f161875a8e3eb6fa95 / SHA1: c18be7acfcef33ef7ff8e8e91bc75e698288d564)
+* [YoNTMA (Windows x86)](https://s3.amazonaws.com/yontma/v1.0/x86/yontma.exe) (MD5: 50c352f48b90f5968a37d9fcb1209002 / SHA1: f1384ec049e56b2563dd6a811d90909450b2ed91)
+* [YoNTMA (Windows x64)](https://s3.amazonaws.com/yontma/v1.0/x64/yontma.exe) (MD5: 0d99913b3cc0119d19955624b8648b9d / SHA1: 2882f8efbe6c033790f740bae161339e561d6062)
 
 How to Run
 ----------

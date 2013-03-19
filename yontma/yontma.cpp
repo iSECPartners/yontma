@@ -277,7 +277,7 @@ BOOL IsUserAdmin(void)
 void PrintUsage(void)
 {
     static const TCHAR usage[] =
-TEXT("yontma v0.2\r\n")
+TEXT("yontma v1.0\r\n")
 TEXT("yontma (You'll Never Take Me Alive!) is a service that helps protect a\r\n")
 TEXT("laptop.\r\n")
 TEXT("If BitLocker is enabled, it will hibernate a locked laptop if power or wired\r\n")
