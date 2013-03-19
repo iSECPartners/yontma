@@ -36,3 +36,9 @@ Build Instructions
 ------------------
 
 YoNTMA builds in Visual Studio (as well as the free version, VS Express 2012 for Desktop) and has no outside dependencies. Open yontma.sln to build.
+
+Disclaimer
+----------
+iSEC has written this tool and provides it to the community free of charge. While iSEC has conducted testing of the tool on different systems, it has not been tested on all models, hardware, or configurations (especially with third-party power management services). The software is being provided "as is" without warranty or support. iSEC does not assume liability for any damage caused by use of this tool.
+
+If you experience issues with YoNTMA, you can uninstall it by entering <pre>yontma -u</pre> from an elevated cmd prompt. If this is not successful, you can follow the [manual removal instructions](https://github.com/iSECPartners/yontma/wiki/Manual-Removal-Instructions) on the wiki.
