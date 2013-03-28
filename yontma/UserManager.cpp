@@ -140,7 +140,7 @@ cleanexit:
 HRESULT DeleteServiceUserProfile(void)
 {
     HRESULT hr;
-    PSID pSid;
+    PSID pSid = NULL;
     PWSTR pszSidString = NULL;
 
     hr = GetAccountSid(YONTMA_SERVICE_ACCOUNT_NAME, &pSid);
