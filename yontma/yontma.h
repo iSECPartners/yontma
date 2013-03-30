@@ -23,12 +23,12 @@ typedef struct _MONITOR_THREAD_PARAMS {
     HANDLE hMonitorEvent;
 } MONITOR_THREAD_PARAMS, *PMONITOR_THREAD_PARAMS;
 
-HRESULT CheckYontmaRequirements();
+HRESULT CheckYontmaRequirements(void);
 
 HRESULT InstallYontma(void);
 HRESULT RemoveYontma(void);
 
-BOOL IsUserAdmin(void);
+HRESULT IsUserAdmin(__out PBOOL isAdmin);
 
 HRESULT ProcessCommandLine(int argc, _TCHAR* argv[]);
 HRESULT PerformInstall(void);

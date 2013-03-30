@@ -1,5 +1,7 @@
 #include "stdafx.h"
 
+HRESULT VerifyRunningAsAdministrator(void);
+
 int _tmain(int argc, _TCHAR* argv[])
 {
     HRESULT hr;
@@ -54,9 +56,9 @@ HRESULT PerformInstall(void)
 {
     HRESULT hr;
 
-    if(!IsUserAdmin()) {
-        printf("Please run yontma as an administrator\n");
-        return E_FAIL;
+    hr = VerifyRunningAsAdministrator();
+    if(HB_FAILED(hr)) {
+        goto cleanexit;
     }
 
 #ifdef NDEBUG
@@ -78,12 +80,21 @@ cleanexit:
 
 HRESULT PerformUninstall(void)
 {
-    if(!IsUserAdmin()) {
-        printf("Please run yontma as an administrator\n");
-        return E_FAIL;
+    HRESULT hr;
+
+    hr = VerifyRunningAsAdministrator();
+    if(HB_FAILED(hr)) {
+        goto cleanexit;
     }
 
-    return RemoveYontma();
+    hr = RemoveYontma();
+    if(HB_FAILED(hr)) {
+        goto cleanexit;
+    }
+
+cleanexit:
+
+    return hr;
 }
 
 void PerformRunAsService(void)
@@ -98,7 +109,7 @@ void PerformRunAsService(void)
     StartServiceCtrlDispatcher(stbl);
 }
 
-HRESULT CheckYontmaRequirements()
+HRESULT CheckYontmaRequirements(void)
 {
     HRESULT hr;
     SYSTEM_POWER_CAPABILITIES SystemPwrCap;
@@ -258,20 +269,64 @@ cleanexit:
     return hr;
 }
 
-BOOL IsUserAdmin(void)
+HRESULT VerifyRunningAsAdministrator(void)
 {
-    BOOL b;
-    SID_IDENTIFIER_AUTHORITY NtAuthority = SECURITY_NT_AUTHORITY;
-    PSID AdministratorsGroup;
+    HRESULT hr;
+    BOOL bIsAdmin;
 
-    b = AllocateAndInitializeSid(&NtAuthority,2,SECURITY_BUILTIN_DOMAIN_RID,DOMAIN_ALIAS_RID_ADMINS,0,0,0,0,0,0,&AdministratorsGroup);
-    if(b) {
-        if(!CheckTokenMembership(NULL,AdministratorsGroup,&b)) b = FALSE;
-        FreeSid(AdministratorsGroup); 
+    hr = IsUserAdmin(&bIsAdmin);
+    if(HB_FAILED(hr)) {
+        printf("Error occurred when checking administrator status: 0x%x\n", hr);
+        goto cleanexit;
     }
 
+    if(!bIsAdmin) {
+        printf("Please run yontma as an administrator.\n");
+        hr = E_FAIL;
+        goto cleanexit;
+    }
 
-    return b;
+    hr = S_OK;
+
+cleanexit:
+
+    return hr;
+}
+
+HRESULT IsUserAdmin(__out PBOOL pbIsAdmin)
+{
+    HRESULT hr;
+    BOOL bIsAdminLocal;
+    SID_IDENTIFIER_AUTHORITY NtAuthority = SECURITY_NT_AUTHORITY;
+    PSID AdministratorsGroup = NULL;
+
+    if(!AllocateAndInitializeSid(&NtAuthority,
+                                  2,
+                                  SECURITY_BUILTIN_DOMAIN_RID,
+                                  DOMAIN_ALIAS_RID_ADMINS,
+                                  0,
+                                  0,
+                                  0,
+                                  0,
+                                  0,
+                                  0,
+                                  &AdministratorsGroup)) {
+        hr = HRESULT_FROM_WIN32(GetLastError());
+        goto cleanexit;
+    }
+
+    if(!CheckTokenMembership(NULL,AdministratorsGroup,&bIsAdminLocal)) {
+        hr = HRESULT_FROM_WIN32(GetLastError());
+        goto cleanexit;
+    }
+    
+    *pbIsAdmin = bIsAdminLocal;
+    hr = S_OK;
+
+cleanexit:
+    FreeSid(AdministratorsGroup);
+
+    return hr;
 }
 
 void PrintUsage(void)
