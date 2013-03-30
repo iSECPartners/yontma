@@ -5,6 +5,7 @@ typedef struct _SERVICE_HANDLER_PARAMS {
     HANDLE hACDisconnectedEvent;
     HANDLE hWiredEthernetDisconnectedEvent;
     BOOL bMachineSuspended;
+    volatile LONG MonitorsCompleted;
 } SERVICE_HANDLER_PARAMS, *PSERVICE_HANDLER_PARAMS;
 
 HRESULT OpenYontmaService(__in SC_HANDLE hSCManager, __out SC_HANDLE* phService);

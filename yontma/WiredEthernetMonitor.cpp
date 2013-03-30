@@ -107,10 +107,11 @@ DWORD WINAPI WiredEthernetMonitorThread(LPVOID lpParams)
 
 cleanexit:
     WriteLineToLog("WiredEtherMonitorThread: Exiting");
+    InterlockedIncrement(pMonitorThreadParams->pMonitorsCompleted);
 
     HB_SAFE_FREE(pOriginalAddresses);
     HB_SAFE_FREE(pNewAddresses);
     HB_SAFE_FREE(pMonitorThreadParams);
-    
+
     return 0;
 }

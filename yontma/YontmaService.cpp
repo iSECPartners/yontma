@@ -1,6 +1,7 @@
 #include "stdafx.h"
 
 void HibernateMachine(void);
+void ResetMonitoringState(__in size_t cMonitors, __in PHANDLE pMonitoringHandles, __in LONG volatile * pMonitorsCompleted);
 
 #ifdef _DEBUG
 const TCHAR LOGGING_MUTEX_NAME[] = TEXT("YontmaLoggingMutex");
@@ -25,6 +26,7 @@ void __stdcall ServiceMain(int argc, TCHAR* argv[])
     static const int DisconnectWiredEthernetEventIndex = 1;
     static const int ServiceEndEventIndex = 2;
     static const int TotalEvents = ServiceEndEventIndex + 1;
+    static const int MonitorCount = 2;
     HANDLE HandleArray[TotalEvents];
     SERVICE_HANDLER_PARAMS serviceHandlerParams = {0};
     BOOL bExitService = FALSE;
@@ -94,13 +96,13 @@ void __stdcall ServiceMain(int argc, TCHAR* argv[])
                                       DEFAULT_SLEEP_TIME)) {
             case WAIT_OBJECT_0 + DisconnectACEventIndex: //AC was disconnected
                 WriteLineToLog("ServiceMain: AC disconnected -> suspend");
-                ResetEvent(HandleArray[DisconnectACEventIndex]);
                 HibernateMachine();
+                ResetMonitoringState(MonitorCount, HandleArray, &serviceHandlerParams.MonitorsCompleted);
                 break;
             case WAIT_OBJECT_0 + DisconnectWiredEthernetEventIndex: //wired ether was disconnected
                 WriteLineToLog("ServiceMain: Wired ether disconnected -> suspend");
-                ResetEvent(HandleArray[DisconnectWiredEthernetEventIndex]);
                 HibernateMachine();
+                ResetMonitoringState(MonitorCount, HandleArray, &serviceHandlerParams.MonitorsCompleted);
                 break;
             case WAIT_OBJECT_0 + ServiceEndEventIndex:
                 WriteLineToLog("ServiceMain: Service stopped");
@@ -153,6 +155,7 @@ DWORD WINAPI ServiceHandlerEx(DWORD dwControl,
             }
             pACThreadParams->hMonitorStopEvent = pServiceHandlerParams->hMonitorStopEvent;
             pACThreadParams->hMonitorEvent = pServiceHandlerParams->hACDisconnectedEvent;
+            pACThreadParams->pMonitorsCompleted = &pServiceHandlerParams->MonitorsCompleted;
             CreateThread(NULL,
                          0,
                          PowerMonitorThread,
@@ -166,6 +169,7 @@ DWORD WINAPI ServiceHandlerEx(DWORD dwControl,
             }
             pEthernetThreadParams->hMonitorStopEvent = pServiceHandlerParams->hMonitorStopEvent;
             pEthernetThreadParams->hMonitorEvent = pServiceHandlerParams->hWiredEthernetDisconnectedEvent;
+            pEthernetThreadParams->pMonitorsCompleted = &pServiceHandlerParams->MonitorsCompleted;
             CreateThread(NULL,
                          0,
                          WiredEthernetMonitorThread,
@@ -205,6 +209,25 @@ DWORD WINAPI ServiceHandlerEx(DWORD dwControl,
 void HibernateMachine(void)
 {
     SetSuspendState(TRUE, TRUE, TRUE);
+}
+
+void ResetMonitoringState(__in size_t cMonitors, __in PHANDLE pMonitoringHandles, __in LONG volatile * pMonitorsCompleted)
+{
+    WriteLineToLog("In ResetMonitoringState");
+
+    while(cMonitors < *pMonitorsCompleted) {
+        Sleep(250);
+    }
+
+    WriteLineToLog("ResetMonitoringState: Resetting handles and monitor complete count");
+
+    for(size_t handleIndex = 0; handleIndex < cMonitors; handleIndex++) {
+        ResetEvent(pMonitoringHandles[handleIndex]);
+    }
+
+    *pMonitorsCompleted = 0;
+
+    WriteLineToLog("ResetMonitoringState: Exiting");
 }
 
 #ifdef _DEBUG

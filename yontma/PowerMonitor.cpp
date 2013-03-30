@@ -39,6 +39,7 @@ DWORD WINAPI PowerMonitorThread(LPVOID lpParams)
 
 cleanexit:
     WriteLineToLog("PowerMonitorThread: Exiting");
+    InterlockedIncrement(pMonitorThreadParams->pMonitorsCompleted);
     HB_SAFE_FREE(pMonitorThreadParams);
 
     return 0;
