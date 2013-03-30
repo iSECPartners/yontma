@@ -18,11 +18,6 @@ typedef struct _PARTITION_TABLE {
     DWORD NumberOfSectors;
 } PARTITION_TABLE, *PPARTITION_TABLE;
 
-typedef struct _MONITOR_THREAD_PARAMS {
-    HANDLE hMonitorStopEvent;
-    HANDLE hMonitorEvent;
-} MONITOR_THREAD_PARAMS, *PMONITOR_THREAD_PARAMS;
-
 HRESULT CheckYontmaRequirements(void);
 
 HRESULT InstallYontma(void);

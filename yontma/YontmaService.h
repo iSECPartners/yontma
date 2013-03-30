@@ -1,4 +1,9 @@
 
+typedef struct _MONITOR_THREAD_PARAMS {
+    HANDLE hMonitorStopEvent;
+    HANDLE hMonitorEvent;
+} MONITOR_THREAD_PARAMS, *PMONITOR_THREAD_PARAMS;
+
 void __stdcall ServiceMain(int argc, TCHAR* argv[]);
 DWORD WINAPI ServiceHandlerEx(DWORD dwControl, DWORD dwEventType, LPVOID lpEventData, LPVOID lpContext);
 
