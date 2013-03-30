@@ -253,6 +253,8 @@ void WriteLineToLog(char *pStr)
     HANDLE hLoggingMutex;
     WCHAR szTempPath[MAX_PATH];
     WCHAR szLogFilePath[MAX_PATH];
+    SYSTEMTIME systemTime = {0};
+    CHAR szTimestamp[] = "[12/12/2012 12:12:12.123] ";
     static const char CRLF[] = "\r\n";
     
     hLoggingMutex = OpenMutex(SYNCHRONIZE, FALSE, LOGGING_MUTEX_NAME);
@@ -283,6 +285,26 @@ void WriteLineToLog(char *pStr)
                     FILE_ATTRIBUTE_NORMAL,
                     NULL);
     if(fh != INVALID_HANDLE_VALUE) {
+        GetSystemTime(&systemTime);
+
+        hr = StringCchPrintfA(szTimestamp,
+                              ARRAYSIZE(szTimestamp),
+                              "[%d/%d/%d %02d:%02d:%02d.%03d] ",
+                              systemTime.wMonth,
+                              systemTime.wDay,
+                              systemTime.wYear,
+                              systemTime.wHour,
+                              systemTime.wMinute,
+                              systemTime.wSecond,
+                              systemTime.wMilliseconds);
+        if(HB_FAILED(hr)) {
+            return;
+        }
+        WriteFile(fh,
+                  szTimestamp,
+                  strlen(szTimestamp),
+                  &dwBytes,
+                  NULL);
         WriteFile(fh,
                   pStr,
                   strlen(pStr),
@@ -290,7 +312,7 @@ void WriteLineToLog(char *pStr)
                   NULL);
         WriteFile(fh,
                   CRLF,
-                  sizeof(CRLF) - sizeof(CRLF[2]),
+                  strlen(CRLF),
                   &dwBytes,
                   NULL);
         CloseHandle(fh);
