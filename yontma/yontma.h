@@ -6,6 +6,8 @@
 
 #define CMD_PARAM_INSTALL               TEXT("-i")
 #define CMD_PARAM_UNINSTALL             TEXT("-u")
+#define CMD_PARAM_FORCE_INSTALL_SHORT   TEXT("-f")
+#define CMD_PARAM_FORCE_INSTALL_LONG    TEXT("--force")
 #define CMD_PARAM_RUN_AS_SERVICE        TEXT("as_svc")
 #define CMD_PARAM_STARTED_FROM_SS       TEXT("started_from_ss")
 
@@ -18,7 +20,7 @@ typedef struct _PARTITION_TABLE {
     DWORD NumberOfSectors;
 } PARTITION_TABLE, *PPARTITION_TABLE;
 
-HRESULT CheckYontmaRequirements(void);
+HRESULT CheckYontmaRequirements(__in BOOL bSkipEncryptionCheck);
 
 HRESULT InstallYontma(void);
 HRESULT RemoveYontma(void);
@@ -26,7 +28,7 @@ HRESULT RemoveYontma(void);
 HRESULT IsUserAdmin(__out PBOOL isAdmin);
 
 HRESULT ProcessCommandLine(int argc, _TCHAR* argv[]);
-HRESULT PerformInstall(void);
+HRESULT PerformInstall(__in BOOL bSkipEncryptionCheck);
 HRESULT PerformUninstall(void);
 void PerformRunAsService(void);
 void PrintUsage(void);

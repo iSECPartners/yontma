@@ -1,6 +1,7 @@
 #include "stdafx.h"
 
 HRESULT VerifyRunningAsAdministrator(void);
+HRESULT VerifyDriveProtectedByBitLocker(void);
 
 int _tmain(int argc, _TCHAR* argv[])
 {
@@ -22,15 +23,31 @@ cleanexit:
 HRESULT ProcessCommandLine(int argc, _TCHAR* argv[])
 {
     HRESULT hr;
+    BOOL bForceInstall;
     
-    if(argc != 2) {
+    if((argc < 2) || (argc > 3)) {
         PrintUsage();
         hr = E_FAIL;
         goto cleanexit;
     }
 
     if(_tcscmp(argv[1], CMD_PARAM_INSTALL) == 0) {
-        hr = PerformInstall();
+        if(argc == 3) {
+            if ((_tcscmp(argv[2], CMD_PARAM_FORCE_INSTALL_SHORT) == 0) ||
+                (_tcscmp(argv[2], CMD_PARAM_FORCE_INSTALL_LONG) == 0)) {
+                bForceInstall = TRUE;
+            }
+            else {
+                PrintUsage();
+                hr = E_FAIL;
+                goto cleanexit;
+            }
+        }
+        else {
+            bForceInstall = FALSE;
+        }
+
+        hr = PerformInstall(bForceInstall);
         goto cleanexit;
     }
     else if(_tcscmp(argv[1], CMD_PARAM_UNINSTALL) == 0) {
@@ -52,7 +69,7 @@ cleanexit:
     return hr;
 }
 
-HRESULT PerformInstall(void)
+HRESULT PerformInstall(__in BOOL bSkipEncryptionCheck)
 {
     HRESULT hr;
 
@@ -61,12 +78,10 @@ HRESULT PerformInstall(void)
         goto cleanexit;
     }
 
-#ifdef NDEBUG
-    hr = CheckYontmaRequirements();
+    hr = CheckYontmaRequirements(bSkipEncryptionCheck);
     if(HB_FAILED(hr)) {
         goto cleanexit;
     }
-#endif
 
     hr = InstallYontma();
     if(HB_FAILED(hr)) {
@@ -109,12 +124,10 @@ void PerformRunAsService(void)
     StartServiceCtrlDispatcher(stbl);
 }
 
-HRESULT CheckYontmaRequirements(void)
+HRESULT CheckYontmaRequirements(__in BOOL bSkipEncryptionCheck)
 {
     HRESULT hr;
     SYSTEM_POWER_CAPABILITIES SystemPwrCap;
-    BOOL bLoadedWmi = FALSE;
-    BOOL bIsOsVolumeProtectedByBitLocker;
 
     //
     // Check if machine can hibernate.
@@ -131,31 +144,16 @@ HRESULT CheckYontmaRequirements(void)
         goto cleanexit;
     }
 
-    hr = LoadWmi();
-    if(HB_FAILED(hr)) {
-        goto cleanexit;
+    if(!bSkipEncryptionCheck) {
+        hr = VerifyDriveProtectedByBitLocker();
+        if(HB_FAILED(hr)) {
+            goto cleanexit;
+        }
     }
-    bLoadedWmi = TRUE;
 
-    //
-    // Check for BitLocker.
-    //
-
-    hr = IsOsVolumeProtectedByBitLocker(&bIsOsVolumeProtectedByBitLocker);
-    if(HB_FAILED(hr)) {
-        printf("Error checking BitLocker status. Error=0x%x\r\n", hr);
-        goto cleanexit;
-    }
-    if(!bIsOsVolumeProtectedByBitLocker) {
-        printf("BitLocker is not enabled on the OS drive of the current system, exiting.\r\n");
-        hr = E_FAIL;
-        goto cleanexit;
-    }
+    hr = S_OK;
 
 cleanexit:
-    if(bLoadedWmi) {
-        CleanupWmi();
-    }
 
     return hr;
 }
@@ -269,6 +267,45 @@ cleanexit:
     return hr;
 }
 
+HRESULT VerifyDriveProtectedByBitLocker(void)
+{
+    HRESULT hr;
+    BOOL bLoadedWmi = FALSE;
+    BOOL bIsOsVolumeProtectedByBitLocker;
+    
+    hr = LoadWmi();
+    if(HB_FAILED(hr)) {
+        goto cleanexit;
+    }
+    bLoadedWmi = TRUE;
+
+    //
+    // Check for BitLocker.
+    //
+
+    hr = IsOsVolumeProtectedByBitLocker(&bIsOsVolumeProtectedByBitLocker);
+    if(HB_FAILED(hr)) {
+        printf("Error checking BitLocker status. Error=0x%x\r\n", hr);
+        goto cleanexit;
+    }
+    if(!bIsOsVolumeProtectedByBitLocker) {
+        printf("BitLocker is not enabled on this computer's OS drive. YoNTMA can only protect\r\n");
+        printf("your system when your OS drive is fully encrypted.\r\n");
+        printf("\r\n");
+        printf("If your OS drive is encrypted by a technology that YoNTMA does not detect, use\r\n");
+        printf("the --force option to install YoNTMA.\r\n");
+        hr = E_FAIL;
+        goto cleanexit;
+    }
+
+cleanexit:
+    if(bLoadedWmi) {
+        CleanupWmi();
+    }
+
+    return hr;
+}
+
 HRESULT VerifyRunningAsAdministrator(void)
 {
     HRESULT hr;
@@ -338,14 +375,20 @@ TEXT("YoNTMA (You'll Never Take Me Alive!) is a service that helps protect a\r\n
 TEXT("laptop.\r\n")
 TEXT("\r\n")
 TEXT("If BitLocker is enabled, it will hibernate a locked laptop if power or wired\r\n")
-TEXT("ethernet is disconnected.\r\n")
+TEXT("Ethernet is disconnected.\r\n")
 TEXT("\r\n")
 TEXT("(c)2013 andreas at isecpartners.com and mlynch at isecpartners.com\r\n")
 TEXT("--------------------------------------------------------------------------------\r\n")
 TEXT("Usage:\r\n")
-TEXT("  yontma <option>\r\n")
+TEXT("  yontma <option> [arguments]\r\n")
 TEXT("Options:\r\n")
-TEXT("  ") CMD_PARAM_INSTALL      TEXT("             Installs and starts yontma\r\n")
-TEXT("  ") CMD_PARAM_UNINSTALL    TEXT("             Stops and removes yontma\r\n");
+TEXT("  ") CMD_PARAM_INSTALL      TEXT("             Installs and starts YoNTMA\r\n")
+TEXT("  ") CMD_PARAM_UNINSTALL    TEXT("             Stops and removes YoNTMA\r\n")
+TEXT("Arguments:\r\n")
+TEXT("  ") CMD_PARAM_FORCE_INSTALL_SHORT TEXT("/") CMD_PARAM_FORCE_INSTALL_LONG
+                                          TEXT("     Force installation (skip encryption check)\r\n")
+                              TEXT("                 Use this argument only if your OS drive is encrypted with a\r\n")
+                              TEXT("                 technology that YoNTMA does not recognize.\r\n");
+
     _tprintf(usage);
 }
