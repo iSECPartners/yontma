@@ -37,6 +37,14 @@ If your OS drive is encrypted by a technology that YoNTMA does not detect, use
 the --force option to install YoNTMA.
 .
 
+MessageId=0x3
+Severity=Error
+Facility=Runtime
+SymbolicName=E_YONTMA_INVALID_COMMAND_LINE
+Language=English
+The command line arguments were incorrect.
+.
+
 ; // A message file must end with a period on its own line
 ; // followed by a blank line.
 

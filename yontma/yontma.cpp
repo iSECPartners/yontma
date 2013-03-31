@@ -27,8 +27,7 @@ HRESULT ProcessCommandLine(int argc, _TCHAR* argv[])
     BOOL bForceInstall;
     
     if((argc < 2) || (argc > 3)) {
-        PrintUsage();
-        hr = E_FAIL;
+        hr = E_YONTMA_INVALID_COMMAND_LINE;
         goto cleanexit;
     }
 
@@ -39,8 +38,7 @@ HRESULT ProcessCommandLine(int argc, _TCHAR* argv[])
                 bForceInstall = TRUE;
             }
             else {
-                PrintUsage();
-                hr = E_FAIL;
+                hr = E_YONTMA_INVALID_COMMAND_LINE;
                 goto cleanexit;
             }
         }
@@ -60,13 +58,15 @@ HRESULT ProcessCommandLine(int argc, _TCHAR* argv[])
         hr = S_OK;
     }
     else {
-        PrintUsage();
-        hr = E_FAIL;
+        hr = E_YONTMA_INVALID_COMMAND_LINE;
         goto cleanexit;
     }
 
 cleanexit:
-    if(HB_FAILED(hr)) {
+    if(hr == E_YONTMA_INVALID_COMMAND_LINE) {
+        PrintUsage();
+    }
+    else if(HB_FAILED(hr)) {
         PrintError(hr);
     }
 
