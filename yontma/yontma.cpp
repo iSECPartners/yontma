@@ -232,27 +232,29 @@ HRESULT RemoveYontma(void)
     
     hr = GetServiceInstalledPath(szInstalledPath,
                                  ARRAYSIZE(szInstalledPath));
-    if(HB_FAILED(hr)) {
+    if(HB_FAILED(hr) && (hr != HRESULT_FROM_WIN32(ERROR_SERVICE_DOES_NOT_EXIST))) {
         _tprintf(TEXT("Failed to remove YoNTMA files. Could not determine install location. Error 0x%x\r\n"), hr);
         szInstalledPath[0] = '\0';
-        hr = S_OK;
     }
 
-    //
-    // Failing to delete the service is a fatal error and we should abort here.
-    //
+    if(hr != HRESULT_FROM_WIN32(ERROR_SERVICE_DOES_NOT_EXIST)) {
 
-    hr = DeleteYontmaService();
-    if(HB_FAILED(hr)) {
-        _tprintf(TEXT("Failed to remove YoNTMA service. Error 0x%x"), hr);
-        goto cleanexit;
-    }
+        //
+        // Failing to delete the service is a fatal error and we should abort here.
+        //
 
-    if(szInstalledPath[0] != '\0') {
-        hr = RemoveYontmaBinaryFromInstallLocation(szInstalledPath);
-        if (HB_FAILED(hr)) {
-            _tprintf(TEXT("Failed to remove YoNTMA files from [%s]. Error 0x%x\r\n"), szInstalledPath, hr);
-            hr = S_OK;
+        hr = DeleteYontmaService();
+        if(HB_FAILED(hr)) {
+            _tprintf(TEXT("Failed to remove YoNTMA service. Error 0x%x"), hr);
+            goto cleanexit;
+        }
+
+        if(szInstalledPath[0] != '\0') {
+            hr = RemoveYontmaBinaryFromInstallLocation(szInstalledPath);
+            if (HB_FAILED(hr)) {
+                _tprintf(TEXT("Failed to remove YoNTMA files from [%s]. Error 0x%x\r\n"), szInstalledPath, hr);
+                hr = S_OK;
+            }
         }
     }
 
