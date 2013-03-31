@@ -321,8 +321,7 @@ HRESULT VerifyRunningAsAdministrator(void)
     }
 
     if(!bIsAdmin) {
-        printf("Please run yontma as an administrator.\n");
-        hr = E_FAIL;
+        hr = E_YONTMA_USER_NOT_ADMIN;
         goto cleanexit;
     }
 

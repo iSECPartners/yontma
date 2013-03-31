@@ -54,6 +54,14 @@ Language=English
 The command line arguments were incorrect.
 .
 
+MessageId=0x5
+Severity=Error
+Facility=Runtime
+SymbolicName=E_YONTMA_USER_NOT_ADMIN
+Language=English
+YoNTMA must be run as an administrator.
+.
+
 ; // A message file must end with a period on its own line
 ; // followed by a blank line.
 
