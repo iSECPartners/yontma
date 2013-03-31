@@ -62,6 +62,22 @@ Language=English
 YoNTMA must be run as an administrator.
 .
 
+MessageId=0x6
+Severity=Error
+Facility=Runtime
+SymbolicName=E_YONTMA_CREATE_USER_FAILED
+Language=English
+Failed to create limited YoNTMA user.
+.
+
+MessageId=0x7
+Severity=Error
+Facility=Runtime
+SymbolicName=E_YONTMA_DELETE_USER_FAILED
+Language=English
+Failed to remove limited YoNTMA user.
+.
+
 ; // A message file must end with a period on its own line
 ; // followed by a blank line.
 

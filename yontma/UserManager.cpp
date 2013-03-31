@@ -84,7 +84,7 @@ HRESULT CreateServiceUserAccount(__out PWSTR* ppszAccountPassword, __out size_t*
                   1,
                   (LPBYTE)&userInfo,
                   &badParameterIndex) != NERR_Success) {
-        hr = E_FAIL;
+        hr = E_YONTMA_CREATE_USER_FAILED;
         goto cleanexit;
     }
     
@@ -126,7 +126,7 @@ HRESULT RemoveServiceUserAccount(void)
     hrDeleteProfile = DeleteServiceUserProfile();
 
     if(NetUserDel(NULL, YONTMA_SERVICE_ACCOUNT_NAME) != NERR_Success) {
-        hr = E_FAIL;
+        hr = E_YONTMA_DELETE_USER_FAILED;
         goto cleanexit;
     }
 
