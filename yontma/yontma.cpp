@@ -340,16 +340,16 @@ HRESULT IsUserAdmin(__out PBOOL pbIsAdmin)
     PSID AdministratorsGroup = NULL;
 
     if(!AllocateAndInitializeSid(&NtAuthority,
-                                  2,
-                                  SECURITY_BUILTIN_DOMAIN_RID,
-                                  DOMAIN_ALIAS_RID_ADMINS,
-                                  0,
-                                  0,
-                                  0,
-                                  0,
-                                  0,
-                                  0,
-                                  &AdministratorsGroup)) {
+                                 2,
+                                 SECURITY_BUILTIN_DOMAIN_RID,
+                                 DOMAIN_ALIAS_RID_ADMINS,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 &AdministratorsGroup)) {
         hr = HRESULT_FROM_WIN32(GetLastError());
         goto cleanexit;
     }
