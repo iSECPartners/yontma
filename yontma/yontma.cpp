@@ -66,6 +66,9 @@ HRESULT ProcessCommandLine(int argc, _TCHAR* argv[])
     }
 
 cleanexit:
+    if(HB_FAILED(hr)) {
+        PrintError(hr);
+    }
 
     return hr;
 }
@@ -295,12 +298,7 @@ HRESULT VerifyDriveProtectedByBitLocker(void)
         goto cleanexit;
     }
     if(!bIsOsVolumeProtectedByBitLocker) {
-        printf("BitLocker is not enabled on this computer's OS drive. YoNTMA can only protect\r\n");
-        printf("your system when your OS drive is fully encrypted.\r\n");
-        printf("\r\n");
-        printf("If your OS drive is encrypted by a technology that YoNTMA does not detect, use\r\n");
-        printf("the --force option to install YoNTMA.\r\n");
-        hr = E_FAIL;
+        hr = E_YONTMA_OS_DRIVE_NOT_ENCRYPTED;
         goto cleanexit;
     }
 

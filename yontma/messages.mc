@@ -25,6 +25,18 @@ Language=English
 The YoNTMA service is not installed.
 .
 
+MessageId=0x2
+Severity=Error
+Facility=Runtime
+SymbolicName=E_YONTMA_OS_DRIVE_NOT_ENCRYPTED
+Language=English
+BitLocker is not enabled on this computer's OS drive. YoNTMA can only protect
+your system when your OS drive is fully encrypted.
+
+If your OS drive is encrypted by a technology that YoNTMA does not detect, use
+the --force option to install YoNTMA.
+.
+
 ; // A message file must end with a period on its own line
 ; // followed by a blank line.
 
