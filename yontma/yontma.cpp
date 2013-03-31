@@ -2,6 +2,7 @@
 
 HRESULT VerifyRunningAsAdministrator(void);
 HRESULT VerifyDriveProtectedByBitLocker(void);
+void PrintError(HRESULT hrError);
 
 int _tmain(int argc, _TCHAR* argv[])
 {
@@ -232,12 +233,15 @@ HRESULT RemoveYontma(void)
     
     hr = GetServiceInstalledPath(szInstalledPath,
                                  ARRAYSIZE(szInstalledPath));
-    if(HB_FAILED(hr) && (hr != HRESULT_FROM_WIN32(ERROR_SERVICE_DOES_NOT_EXIST))) {
+    if(hr == E_YONTMA_SERVICE_NOT_INSTALLED) {
+        PrintError(hr);
+    }
+    else if(HB_FAILED(hr)) {
         _tprintf(TEXT("Failed to remove YoNTMA files. Could not determine install location. Error 0x%x\r\n"), hr);
         szInstalledPath[0] = '\0';
     }
 
-    if(hr != HRESULT_FROM_WIN32(ERROR_SERVICE_DOES_NOT_EXIST)) {
+    if(hr != E_YONTMA_SERVICE_NOT_INSTALLED) {
 
         //
         // Failing to delete the service is a fatal error and we should abort here.
@@ -366,6 +370,54 @@ cleanexit:
     FreeSid(AdministratorsGroup);
 
     return hr;
+}
+
+HRESULT GetCurrentModule(__out HMODULE* hCurrentModule)
+{
+    HRESULT hr;
+    HMODULE hModule = NULL;
+
+    if(!GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+                          (LPCTSTR)GetCurrentModule,
+                          &hModule)) {
+        hr = HRESULT_FROM_WIN32(GetLastError());
+        goto cleanexit;
+    }
+
+    *hCurrentModule = hModule;
+    hr = S_OK;
+
+cleanexit:
+
+    return hr;
+}
+
+void PrintError(HRESULT hrError)
+{
+    HRESULT hr;
+    HMODULE hCurrentModule;
+    PTSTR pszErrorMessage = NULL;
+
+    hr = GetCurrentModule(&hCurrentModule);
+    if(HB_FAILED(hr)) {
+        goto cleanexit;
+    }
+
+    if(!FormatMessage(FORMAT_MESSAGE_FROM_HMODULE |
+                        FORMAT_MESSAGE_ALLOCATE_BUFFER,
+                      hCurrentModule,
+                      (DWORD)hrError,
+                      0,
+                      (LPTSTR)&pszErrorMessage,
+                      0,
+                      NULL)) {
+        goto cleanexit;
+    }
+
+    _tprintf(pszErrorMessage);
+
+cleanexit:
+    HB_SAFE_LOCAL_FREE(pszErrorMessage);
 }
 
 void PrintUsage(void)

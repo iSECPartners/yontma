@@ -40,6 +40,7 @@
 #include <strsafe.h>
 #include <intsafe.h>
 
+#include "messages.h"
 #include "BdeCheck.h"
 #include "WmiHelper.h"
 #include "UserManager.h"

@@ -63,7 +63,8 @@ HRESULT OpenYontmaService(__in SC_HANDLE hSCManager, __out SC_HANDLE* phService)
     if(hServiceLocal == NULL) {
         dwError = GetLastError();
         if(dwError == ERROR_SERVICE_DOES_NOT_EXIST) {
-            printf("YoNTMA is not installed.\r\n");
+            hr = E_YONTMA_SERVICE_NOT_INSTALLED;
+            goto cleanexit;
         }
         else {
             printf("OpenService error: %d\r\n", dwError);
