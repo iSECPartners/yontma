@@ -143,8 +143,7 @@ HRESULT CheckYontmaRequirements(__in BOOL bSkipEncryptionCheck)
         goto cleanexit;
     }
     if(!SystemPwrCap.HiberFilePresent) {
-        printf("Hibernation is not enabled on this system, exiting\r\n");
-        hr = E_FAIL;
+        hr = E_YONTMA_HIBERNATE_NOT_ENABLED;
         goto cleanexit;
     }
 

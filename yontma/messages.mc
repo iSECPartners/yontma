@@ -40,6 +40,15 @@ the --force option to install YoNTMA.
 MessageId=0x3
 Severity=Error
 Facility=Runtime
+SymbolicName=E_YONTMA_HIBERNATE_NOT_ENABLED
+Language=English
+Hibernation is not enabled on this system. Hibernation is required for YoNTMA
+to function.
+.
+
+MessageId=0x4
+Severity=Error
+Facility=Runtime
 SymbolicName=E_YONTMA_INVALID_COMMAND_LINE
 Language=English
 The command line arguments were incorrect.
