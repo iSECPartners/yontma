@@ -79,7 +79,7 @@ HRESULT CreateServiceUserAccount(__out PWSTR* ppszAccountPassword, __out size_t*
     }
 
     userInfo.usri1_password = pszAccountPasswordLocal;
-    
+
     if(NetUserAdd(NULL,
                   1,
                   (LPBYTE)&userInfo,
@@ -87,12 +87,12 @@ HRESULT CreateServiceUserAccount(__out PWSTR* ppszAccountPassword, __out size_t*
         hr = E_YONTMA_CREATE_USER_FAILED;
         goto cleanexit;
     }
-    
+
     hr = AdjustYontmaAccountPrivileges();
     if(HB_FAILED(hr)) {
         goto cleanexit;
     }
-    
+
     //
     // We ignore failures on group removal, since this user will still be more
     // lower-privileged than SYSTEM
@@ -205,7 +205,7 @@ HRESULT AdjustYontmaAccountPrivileges(void)
     NTSTATUS ntReturn;
     LSA_OBJECT_ATTRIBUTES ObjectAttributes = {0};
     LSA_HANDLE lsahPolicyHandle = NULL;
-    
+
     hr = GetAccountSid(YONTMA_SERVICE_ACCOUNT_NAME, &pSid);
     if(HB_FAILED(hr)) {
         goto cleanexit;
@@ -373,7 +373,7 @@ HRESULT GetAccountSid(__in PCWSTR pszAccountName, __out PSID* ppSid)
     DWORD cchReferencedDomain = 0;
     DWORD cbReferencedDomain;
     SID_NAME_USE SidNameUse;
-    
+
     //
     // If we succeed with a zero-length buffer, something is wrong.
     //
@@ -442,7 +442,7 @@ HRESULT GenerateRandomPassword(__out PWSTR pszPassword, __in size_t cchPassword)
     DWORD cbRandomBuffer = 0;
     PBYTE pbRandomBuffer = NULL;
     size_t cbPassword;
-    
+
     if(!CryptAcquireContext(&hCryptProvider,
                             NULL,
                             NULL,
@@ -517,7 +517,7 @@ HRESULT PasswordFromBytes(__in PBYTE pBytes, __in size_t cbBytes, __out PWSTR ps
     // but we still have enough.
     //
 
-    for (size_t i = 0; i < cbBytes; i++) 
+    for (size_t i = 0; i < cbBytes; i++)
     {
         pszAsciiPassword[i] = (pBytes[i] % 0x4d) + 0x21;
     }

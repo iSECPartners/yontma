@@ -72,7 +72,7 @@ HRESULT OpenYontmaService(__in SC_HANDLE hSCManager, __out SC_HANDLE* phService)
         hr = HRESULT_FROM_WIN32(dwError);
         goto cleanexit;
     }
-    
+
     *phService = hServiceLocal;
     hServiceLocal = NULL;
 
@@ -198,7 +198,7 @@ HRESULT ChangeYontmaServiceStatus(DWORD dwServiceStatus, LPVOID lpContext)
     status.dwServiceSpecificExitCode = 0;
     status.dwCheckPoint = 0;
     status.dwWaitHint = 3000;
-    
+
     if(!SetServiceStatus(hSrv, &status)) {
         return HRESULT_FROM_WIN32(GetLastError());
     }
@@ -375,7 +375,7 @@ HRESULT ServiceExecutionStringToInstalledPath(__in PTSTR pszServiceExecutionStri
     }
 
     cchToCopy = (pszInstalledPathEnd - (pszServiceExecutionString + 1));
-    
+
     hr = StringCchCopyN(pszInstalledPath,
                         cchInstalledPath,
                         pszServiceExecutionString + 1,

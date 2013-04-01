@@ -79,7 +79,7 @@ DWORD WINAPI WiredEthernetMonitorThread(LPVOID lpParams)
             WriteLineToLog("WiredEtherMonitorThread: Failed to get new adapter addresses");
             goto cleanexit;
         }
-        
+
         pCurrOriginalAddress = pOriginalAddresses;
         pCurrNewAddress = pNewAddresses;
         while(pCurrOriginalAddress && pCurrNewAddress) {
@@ -96,7 +96,7 @@ DWORD WINAPI WiredEthernetMonitorThread(LPVOID lpParams)
             pCurrOriginalAddress = pCurrOriginalAddress->Next;
             pCurrNewAddress = pCurrNewAddress->Next;
         }
-        
+
         switch (WaitForSingleObject(pMonitorThreadParams->hMonitorStopEvent, DEFAULT_SLEEP_TIME)) {
         case WAIT_OBJECT_0:
             goto cleanexit;

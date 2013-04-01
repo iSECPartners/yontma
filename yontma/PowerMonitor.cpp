@@ -5,7 +5,7 @@ DWORD WINAPI PowerMonitorThread(LPVOID lpParams)
 {
     SYSTEM_POWER_STATUS PowerStatus;
     PMONITOR_THREAD_PARAMS pMonitorThreadParams = (PMONITOR_THREAD_PARAMS)lpParams;
-    
+
     WriteLineToLog("PowerMonitorThread: Started");
 
     if(!GetSystemPowerStatus(&PowerStatus)) {

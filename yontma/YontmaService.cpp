@@ -256,7 +256,7 @@ void WriteLineToLog(char *pStr)
     SYSTEMTIME systemTime = {0};
     CHAR szTimestamp[] = "[12/12/2012 12:12:12.123] ";
     static const char CRLF[] = "\r\n";
-    
+
     hLoggingMutex = OpenMutex(SYNCHRONIZE, FALSE, LOGGING_MUTEX_NAME);
     if(!hLoggingMutex) {
         return;

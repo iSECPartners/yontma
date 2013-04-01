@@ -48,7 +48,7 @@ HRESULT GetInstallPath(__out TCHAR* pszInstallPath, __in size_t cchInstallPath)
     if(HB_FAILED(hr)) {
         goto cleanexit;
     }
-    
+
     hr = StringCchPrintf(pszInstallPath,
                          cchInstallPath,
                          TEXT("%s\\%s"),
