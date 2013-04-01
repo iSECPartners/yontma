@@ -1,7 +1,6 @@
 #include "stdafx.h"
 
 HRESULT VerifyRunningAsAdministrator(void);
-HRESULT VerifyDriveProtectedByBitLocker(void);
 void PrintError(HRESULT hrError);
 
 int _tmain(int argc, _TCHAR* argv[])
@@ -25,7 +24,7 @@ HRESULT ProcessCommandLine(int argc, _TCHAR* argv[])
 {
     HRESULT hr;
     BOOL bForceInstall;
-    
+
     if((argc < 2) || (argc > 3)) {
         hr = E_YONTMA_INVALID_COMMAND_LINE;
         goto cleanexit;
@@ -148,7 +147,7 @@ HRESULT CheckYontmaRequirements(__in BOOL bSkipEncryptionCheck)
     }
 
     if(!bSkipEncryptionCheck) {
-        hr = VerifyDriveProtectedByBitLocker();
+        hr = VerifyBitLockerRequirements();
         if(HB_FAILED(hr)) {
             goto cleanexit;
         }
@@ -183,7 +182,7 @@ HRESULT InstallYontma(void)
     }
 
     hr = CreateServiceUserAccount(&pszAccountPassword, &cbAccountPassword);
-    
+
     //
     // Don't fail if we're unable to create the low-privileged YoNTMA user.
     //
@@ -232,7 +231,7 @@ HRESULT RemoveYontma(void)
 {
     HRESULT hr;
     TCHAR szInstalledPath[MAX_PATH] = {0};
-    
+
     hr = GetServiceInstalledPath(szInstalledPath,
                                  ARRAYSIZE(szInstalledPath));
     if(hr == E_YONTMA_SERVICE_NOT_INSTALLED) {
@@ -271,40 +270,6 @@ HRESULT RemoveYontma(void)
     }
 
 cleanexit:
-
-    return hr;
-}
-
-HRESULT VerifyDriveProtectedByBitLocker(void)
-{
-    HRESULT hr;
-    BOOL bLoadedWmi = FALSE;
-    BOOL bIsOsVolumeProtectedByBitLocker;
-    
-    hr = LoadWmi();
-    if(HB_FAILED(hr)) {
-        goto cleanexit;
-    }
-    bLoadedWmi = TRUE;
-
-    //
-    // Check for BitLocker.
-    //
-
-    hr = IsOsVolumeProtectedByBitLocker(&bIsOsVolumeProtectedByBitLocker);
-    if(HB_FAILED(hr)) {
-        printf("Error checking BitLocker status. Error=0x%x\r\n", hr);
-        goto cleanexit;
-    }
-    if(!bIsOsVolumeProtectedByBitLocker) {
-        hr = E_YONTMA_OS_DRIVE_NOT_ENCRYPTED;
-        goto cleanexit;
-    }
-
-cleanexit:
-    if(bLoadedWmi) {
-        CleanupWmi();
-    }
 
     return hr;
 }
@@ -358,7 +323,7 @@ HRESULT IsUserAdmin(__out PBOOL pbIsAdmin)
         hr = HRESULT_FROM_WIN32(GetLastError());
         goto cleanexit;
     }
-    
+
     *pbIsAdmin = bIsAdminLocal;
     hr = S_OK;
 

@@ -30,8 +30,8 @@ Severity=Error
 Facility=Runtime
 SymbolicName=E_YONTMA_OS_DRIVE_NOT_ENCRYPTED
 Language=English
-BitLocker is not enabled on this computer's OS drive. YoNTMA can only protect
-your system when your OS drive is fully encrypted.
+BitLocker Drive Encryption is not enabled on this computer's OS drive. YoNTMA
+can only protect your system when your OS drive is fully encrypted.
 
 If your OS drive is encrypted by a technology that YoNTMA does not detect, use
 the --force option to install YoNTMA.
@@ -76,6 +76,18 @@ Facility=Runtime
 SymbolicName=E_YONTMA_DELETE_USER_FAILED
 Language=English
 Failed to remove limited YoNTMA user.
+.
+
+MessageId=0x8
+Severity=Error
+Facility=Runtime
+SymbolicName=E_YONTMA_BDE_TPM_ONLY_PROTECTOR
+Language=English
+This system is configured to use BitLocker Drive Encryption using only the TPM
+for authentication. YoNTMA requires an additional factor for authentication
+(such as TPM+PIN or TPM+startup key) when the TPM is used as a protector, as
+hibernating a PC protected with TPM-only does not provide additional
+protection.
 .
 
 ; // A message file must end with a period on its own line

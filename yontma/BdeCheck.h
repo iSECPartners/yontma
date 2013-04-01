@@ -1,2 +1,2 @@
 
-HRESULT IsOsVolumeProtectedByBitLocker(PBOOL pbIsProtected);
+HRESULT VerifyBitLockerRequirements(void);
