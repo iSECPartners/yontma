@@ -27,10 +27,16 @@ to install and run the YoNTMA service.
 
 If you open services.msc, you will find You'll Never Take Me Alive! (YoNTMA) in the list running as a service.
 
+To tell yontma to install even if it does not detect BitLocker (for example if you use Truecrypt) run:
+
+<pre>yontma -i -f</pre>
+
 Requirements
 -------------
 
-The machine must be Windows Vista or above and have BitLocker Drive Encryption enabled on the OS volume (typically drive C:).
+The machine must be Windows Vista or above and have BitLocker Drive Encryption enabled on the OS volume (typically drive C:).  
+
+If BitLocker is not enabled, yontma must be `--force`-ed on with the `-f` or `--force` option.
 
 Build Instructions
 ------------------
