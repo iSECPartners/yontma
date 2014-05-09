@@ -1,7 +1,7 @@
 YoNTMA
 ======
 
-YoNTMA (You'll Never Take Me Alive!) is a tool designed to enhance the protection of data encryption on laptops.
+YoNTMA (You'll Never Take Me Alive!) is a tool designed to enhance the protection of data encryption on Windows laptops. A Macintosh version is available [here](https://github.com/iSECPartners/yontma-mac).
 
 How It Works
 ------------
@@ -11,7 +11,7 @@ YoNTMA runs as a Win32 service on BitLocker-protected laptops. If the laptop is 
 How to Run
 ----------
 
-From an elevated cmd prompt, run: 
+From an elevated cmd prompt, run:
 
 <pre>yontma -i</pre>
 
@@ -26,7 +26,7 @@ To tell yontma to install even if it does not detect BitLocker (for example if y
 Requirements
 -------------
 
-The machine must be Windows Vista or above and have BitLocker Drive Encryption enabled on the OS volume (typically drive C:).  
+The machine must be Windows Vista or above and have BitLocker Drive Encryption enabled on the OS volume (typically drive C:).
 
 If BitLocker is not enabled, yontma must be `--force`-ed on with the `-f` or `--force` option.
 
